@@ -297,15 +297,19 @@ a { color: var(--orange); }
 .team-slot.pick-correct { border-left: 3px solid var(--green); }
 .team-slot.pick-wrong   { border-left: 3px solid var(--red);   }
 /* F4 / CHAMPIONSHIP */
-.f4-col { display: flex; flex-direction: column; width: 160px; }
+.f4-col { display: flex; flex-direction: column; width: 180px; }
 .f4-game-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 0.2rem; }
 .f4-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); text-align: center; margin-bottom: 0.3rem; }
-.champ-col { display: flex; flex-direction: column; width: 160px; }
+.champ-col { display: flex; flex-direction: column; width: 180px; }
 .champ-content { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0.5rem 0.25rem; gap: 0.5rem; }
+.champ-content .matchup-wrap,
+.champ-content .matchup,
+.f4-game-wrap .matchup-wrap,
+.f4-game-wrap .matchup { width: 100%; }
 .champ-info { text-align: center; }
 .champ-title { font-size: 0.75rem; font-weight: 700; color: var(--text); margin-bottom: 0.2rem; }
 .champ-venue, .champ-date { font-size: 0.65rem; color: var(--text-3); }
-.winner-box { border: 2px solid var(--green); border-radius: var(--radius); padding: 0.5rem 0.75rem; text-align: center; background: rgba(46,204,113,0.06); min-width: 110px; }
+.winner-box { border: 2px solid var(--green); border-radius: var(--radius); padding: 0.5rem 0.75rem; text-align: center; background: rgba(46,204,113,0.06); width: 100%; box-sizing: border-box; }
 .wb-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--green); margin-bottom: 0.2rem; }
 .wb-team { font-size: 0.85rem; font-weight: 700; color: var(--text); }
 .wb-tbd  { color: var(--text-3); font-style: italic; }
