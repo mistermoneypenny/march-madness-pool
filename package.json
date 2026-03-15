@@ -1,0 +1,13 @@
+{
+  "name": "march-madness-pool",
+  "version": "1.0.0",
+  "description": "March Madness Pick-by-Round Pool",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "sharp": "^0.34.5"
+  }
+}
