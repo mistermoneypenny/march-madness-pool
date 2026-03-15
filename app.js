@@ -919,7 +919,38 @@ function buildBracketCenter() {
 
 // ── RULES RENDERING ───────────────────────────────────────────
 
-const DEFAULT_RULES_PLACEHOLDER = `Welcome to the pool! Rules will be posted here by the Commissioner.`;
+const DEFAULT_RULES_PLACEHOLDER = `MARCH MADNESS PICK-BY-ROUND POOL — OFFICIAL RULES
+
+HOW IT WORKS
+Before each round begins, every player picks the winner of each game in that round. Once the round is locked by the Commissioner, picks cannot be changed. A new round opens after all games in the current round are complete.
+
+SCORING — GAME PICKS
+Round of 64: 1 point per correct pick (x1.0 multiplier)
+Round of 32: 2 points per correct pick (x1.2 multiplier)
+Sweet 16: 4 points per correct pick (x1.4 multiplier)
+Elite 8: 6 points per correct pick (x1.6 multiplier)
+Final Four: 8 points per correct pick (x1.8 multiplier)
+Championship: 12 points per correct pick (x2.0 multiplier)
+
+Upset bonus: When a lower-seeded team wins, your pick earns bonus points based on the seed difference multiplied by the round multiplier.
+
+BONUS QUESTIONS
+Each round includes a bonus opportunity worth extra points:
+
+Round of 64 — Most Successful Conference (4 pts)
+Round of 32 — Correct Number of Buzzer Beaters (6 pts)
+Sweet 16 — Highest Point Differential (8 pts)
+Elite 8 — High Scorer / Player Name (10 pts) + Name the Four Elite 8 Winners (25 pts)
+Final Four — Team with Most 3-Pointers (6 pts) + Number of 3-Pointers Made (6 pts)
+
+GENERAL RULES
+1. All picks must be submitted before the round is locked by the Commissioner.
+2. Once a round is closed, picks are final — no changes allowed.
+3. The Commissioner enters official results and correct bonus answers, which automatically update all scores.
+4. The player with the most total points at the end of the tournament wins.
+5. In case of a tie, the player with more correct Championship/Final Four picks wins.
+
+Good luck and have fun!`;
 
 function renderRules() {
   const body        = document.getElementById('rules-body');
