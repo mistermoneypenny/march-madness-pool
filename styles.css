@@ -297,7 +297,7 @@ a { color: var(--orange); }
 .team-slot.pick-correct { border-left: 3px solid var(--green); }
 .team-slot.pick-wrong   { border-left: 3px solid var(--red);   }
 /* F4 / CHAMPIONSHIP */
-.f4-col { display: flex; flex-direction: column; width: 130px; }
+.f4-col { display: flex; flex-direction: column; width: 160px; }
 .f4-game-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 0.4rem 0.2rem; }
 .f4-label { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); text-align: center; margin-bottom: 0.3rem; }
 .champ-col { display: flex; flex-direction: column; width: 160px; }
