@@ -207,6 +207,7 @@ let state = {
   bonusPicks:   {},   // playerId -> { bonusId -> answer }
   bonusAnswers: {},   // bonusId -> correct answer
   playerPins:   {},   // playerId -> 4-digit PIN string
+  liveScores:   {},   // ESPN shortName -> { t1: {name,score}, t2: {name,score}, status, statusDetail }
 };
 
 // ── GAME GENERATION ───────────────────────────────────────────
@@ -796,10 +797,34 @@ function buildRoundCol(region, roundId) {
   return col;
 }
 
+// Find live score for a game by matching team names against ESPN data
+function findGameScore(t1, t2) {
+  if (!t1 || !t2 || !state.liveScores) return null;
+  const name1 = t1.name.toLowerCase();
+  const name2 = t2.name.toLowerCase();
+
+  for (const [key, sc] of Object.entries(state.liveScores)) {
+    const sn1 = sc.t1.name.toLowerCase();
+    const sn2 = sc.t2.name.toLowerCase();
+    // Match if both team names appear (ESPN may abbreviate differently)
+    if ((sn1.includes(name1) || name1.includes(sn1) || sn1 === name1) &&
+        (sn2.includes(name2) || name2.includes(sn2) || sn2 === name2)) {
+      return sc;
+    }
+    // Try reversed order
+    if ((sn1.includes(name2) || name2.includes(sn1) || sn1 === name2) &&
+        (sn2.includes(name1) || name1.includes(sn2) || sn2 === name1)) {
+      return { t1: sc.t2, t2: sc.t1, status: sc.status, statusDetail: sc.statusDetail, clock: sc.clock, period: sc.period };
+    }
+  }
+  return null;
+}
+
 function buildMatchup(game) {
   const { t1, t2 } = getTeams(game);
   const winner = getWinner(game.id);
   const playerPick = (state.picks[state.currentPlayer] || {})[game.round]?.[game.id];
+  const liveScore = findGameScore(t1, t2);
 
   const card = document.createElement('div');
   card.className = 'matchup';
@@ -820,12 +845,29 @@ function buildMatchup(game) {
       if (pickedThis && isWinner) row.classList.add('pick-correct');
       if (pickedThis && isLoser)  row.classList.add('pick-wrong');
 
+      // Find score for this team from ESPN data
+      let scoreHtml = '';
+      if (liveScore) {
+        const teamScore = (slot === 1) ? liveScore.t1 : liveScore.t2;
+        const scoreClass = liveScore.status === 'post' ? 'score-final' : 'score-live';
+        scoreHtml = `<span class="t-score ${scoreClass}">${teamScore.score}</span>`;
+      }
+
       row.innerHTML = `
         <span class="t-seed">${team.seed}</span>
-        <span class="t-name">${esc(team.name)}</span>`;
+        <span class="t-name">${esc(team.name)}</span>
+        ${scoreHtml}`;
     }
     card.appendChild(row);
   });
+
+  // Show game status (live indicator)
+  if (liveScore && liveScore.status === 'in') {
+    const liveTag = document.createElement('div');
+    liveTag.className = 'game-live-tag';
+    liveTag.textContent = liveScore.statusDetail || 'LIVE';
+    card.appendChild(liveTag);
+  }
 
   return card;
 }
@@ -2123,6 +2165,25 @@ async function init() {
   setupEvents();
   renderLoginOverlay();
   startPolling();
+  startScoresPolling();
+}
+
+// ── LIVE SCORES POLLING ──────────────────────────────────────
+async function fetchLiveScores() {
+  try {
+    const resp = await fetch('/api/scores');
+    if (!resp.ok) return;
+    const scores = await resp.json();
+    if (scores && Object.keys(scores).length) {
+      state.liveScores = scores;
+      renderCurrentView();
+    }
+  } catch (e) { /* ignore */ }
+}
+
+function startScoresPolling() {
+  fetchLiveScores(); // immediate
+  setInterval(fetchLiveScores, 60000); // every 60 seconds
 }
 
 // ── POLLING ──────────────────────────────────────────────────

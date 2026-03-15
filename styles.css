@@ -295,6 +295,11 @@ a { color: var(--orange); }
 .team-slot.winner { background: rgba(46,204,113,0.18); color: var(--green); font-weight: 700; }
 .team-slot.loser  { color: var(--text-3); }
 .team-slot.pick-correct { border-left: 3px solid var(--green); }
+/* Score display */
+.t-score { margin-left: auto; font-weight: 700; font-size: 0.72rem; min-width: 20px; text-align: right; }
+.score-final { color: var(--text-1); }
+.score-live { color: var(--gold); }
+.game-live-tag { text-align: center; font-size: 0.6rem; font-weight: 700; color: var(--red); background: rgba(231,76,60,0.12); padding: 1px 4px; letter-spacing: 0.05em; }
 .team-slot.pick-wrong   { border-left: 3px solid var(--red);   }
 /* F4 / CHAMPIONSHIP */
 .f4-col { display: flex; flex-direction: column; width: 180px; }

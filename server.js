@@ -119,6 +119,90 @@ app.post('/api/state', async (req, res) => {
   }
 });
 
+// ── ESPN SCORES ──────────────────────────────────────────────
+// Fetch live/final scores from ESPN's public API
+const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard';
+
+// Tournament dates by round (March Madness 2026)
+const TOURNAMENT_DATES = [
+  '20260317', '20260318',  // First Four
+  '20260319', '20260320',  // Round of 64
+  '20260321', '20260322',  // Round of 32
+  '20260327', '20260328',  // Sweet 16
+  '20260329', '20260330',  // Elite 8 (sometimes same weekend)
+  '20260404', '20260405',  // Final Four
+  '20260407',              // Championship
+];
+
+let cachedScores = {};
+let lastScoresFetch = 0;
+const SCORES_CACHE_MS = 60000; // refresh every 60 seconds
+
+async function fetchESPNScores() {
+  const now = Date.now();
+  if (now - lastScoresFetch < SCORES_CACHE_MS) return cachedScores;
+
+  const scores = {};
+  // Only fetch dates that are today or in the past (plus today +1 for timezone)
+  const today = new Date();
+  const todayStr = today.toISOString().slice(0, 10).replace(/-/g, '');
+  const tomorrow = new Date(today.getTime() + 86400000);
+  const tomorrowStr = tomorrow.toISOString().slice(0, 10).replace(/-/g, '');
+
+  const datesToFetch = TOURNAMENT_DATES.filter(d => d <= tomorrowStr);
+  if (datesToFetch.length === 0) return cachedScores;
+
+  for (const date of datesToFetch) {
+    try {
+      const resp = await fetch(`${ESPN_BASE}?dates=${date}&groups=100`);
+      if (!resp.ok) continue;
+      const data = await resp.json();
+      if (!data.events) continue;
+
+      for (const event of data.events) {
+        const comp = event.competitions?.[0];
+        if (!comp) continue;
+        const status = comp.status?.type?.state || 'pre'; // pre, in, post
+        if (status === 'pre') continue; // skip games that haven't started
+
+        const teams = comp.competitors || [];
+        if (teams.length < 2) continue;
+
+        // ESPN lists home team first, away second (or vice versa)
+        const team1 = teams[0];
+        const team2 = teams[1];
+
+        const gameName = event.shortName || '';
+        scores[gameName] = {
+          t1: { name: team1.team?.shortDisplayName || team1.team?.displayName || '', score: parseInt(team1.score) || 0, seed: team1.curatedRank?.current || 0 },
+          t2: { name: team2.team?.shortDisplayName || team2.team?.displayName || '', score: parseInt(team2.score) || 0, seed: team2.curatedRank?.current || 0 },
+          status: status, // 'in' = live, 'post' = final
+          statusDetail: comp.status?.type?.shortDetail || '',
+          clock: comp.status?.displayClock || '',
+          period: comp.status?.period || 0,
+        };
+      }
+    } catch (e) {
+      console.warn(`ESPN fetch failed for ${date}:`, e.message);
+    }
+  }
+
+  cachedScores = scores;
+  lastScoresFetch = now;
+  return scores;
+}
+
+// API endpoint for client to get scores
+app.get('/api/scores', async (req, res) => {
+  try {
+    const scores = await fetchESPNScores();
+    res.json(scores);
+  } catch (e) {
+    console.error('GET /api/scores error:', e.message);
+    res.json({});
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`March Madness Pool running at http://localhost:${PORT}`);
 });
