@@ -1680,76 +1680,73 @@ function saveBonusAnswers() {
 // ── DEMO DATA ─────────────────────────────────────────────────
 
 function loadDemoData() {
-  // Upset-heavy bracket for demo variety.
-  // Notable Cinderellas: Saint Peter's (15) → E8; Iowa St (4) beats Arizona (1) in S16;
-  // Nevada (7) beats Illinois (3) in S16; Marquette (2) beats Houston (1) in E8;
-  // Indiana (4) beats Connecticut (1) in S16; multiple 12/11/10/9-seed R64 upsets.
+  // Upset-heavy demo bracket using 2025-26 teams.
   state.results = {
     // ── EAST ──────────────────────────────────────────────────────
-    // R64: Duke(1)✓  Iowa(8)✓  Drake(12)>Wisc(5)  Kansas(4)✓
-    //      Oregon(11)>SC(6)  Colgate(14)>Baylor(3)  Florida(7)✓  StPeters(15)>Tenn(2)
-    'r64-east-0':'Duke',          'r64-east-1':'Iowa',
-    'r64-east-2':'Drake',         'r64-east-3':'Kansas',
-    'r64-east-4':'Oregon',        'r64-east-5':'Colgate',
-    'r64-east-6':'Florida',       'r64-east-7':"Saint Peter's",
-    // R32: Duke>Iowa  Drake>Kansas  Colgate>Oregon  StPeters>Florida
-    'r32-east-0':'Duke',          'r32-east-1':'Drake',
-    'r32-east-2':'Colgate',       'r32-east-3':"Saint Peter's",
-    // S16: Duke>Drake  StPeters>Colgate (15-seed in Elite 8!)
-    's16-east-0':'Duke',          's16-east-1':"Saint Peter's",
+    // R64: Duke(1)✓  TCU(9)>OhioSt(8)  N.Iowa(12)>StJohns(5)  Kansas(4)✓
+    //      S.Florida(11)>Louisville(6)  MichSt(3)✓  UCF(10)>UCLA(7)  Furman(15)>UConn(2)
+    'r64-east-0':'Duke',            'r64-east-1':'TCU',
+    'r64-east-2':'Northern Iowa',   'r64-east-3':'Kansas',
+    'r64-east-4':'South Florida',   'r64-east-5':'Michigan St',
+    'r64-east-6':'UCF',             'r64-east-7':'Furman',
+    // R32: Duke>TCU  Kansas>N.Iowa  MichSt>S.Florida  Furman>UCF
+    'r32-east-0':'Duke',            'r32-east-1':'Kansas',
+    'r32-east-2':'Michigan St',     'r32-east-3':'Furman',
+    // S16: Duke>Kansas  Furman>MichSt (15-seed Cinderella!)
+    's16-east-0':'Duke',            's16-east-1':'Furman',
     // E8: Duke ends the Cinderella run
     'e8-east-0':'Duke',
 
     // ── WEST ──────────────────────────────────────────────────────
-    // R64: Arizona(1)✓  TCU(9)>UtahSt(8)  NewMexico(12)>Dayton(5)  IowaS(4)✓
-    //      NMexSt(11)>Clemson(6)  Illinois(3)✓  Nevada(7)✓  Charleston(15)>Alabama(2)
-    'r64-west-0':'Arizona',       'r64-west-1':'TCU',
-    'r64-west-2':'New Mexico',    'r64-west-3':'Iowa St',
-    'r64-west-4':'N. Mexico St',  'r64-west-5':'Illinois',
-    'r64-west-6':'Nevada',        'r64-west-7':'Charleston',
-    // R32: Arizona>TCU  IowaS>NewMexico  Illinois>NMexSt  Nevada>Charleston
-    'r32-west-0':'Arizona',       'r32-west-1':'Iowa St',
-    'r32-west-2':'Illinois',      'r32-west-3':'Nevada',
-    // S16: IowaS(4)>Arizona(1) UPSET!  Nevada(7)>Illinois(3) UPSET!
-    's16-west-0':'Iowa St',       's16-west-1':'Nevada',
-    // E8: Iowa St > Nevada
-    'e8-west-0':'Iowa St',
+    // R64: Arizona(1)✓  UtahSt(9)>Villanova(8)  HighPoint(12)>Wisconsin(5)  Arkansas(4)✓
+    //      Texas/NCSt(11)>BYU(6)  Gonzaga(3)✓  Missouri(10)>Miami(7)  Purdue(2)✓
+    'r64-west-0':'Arizona',         'r64-west-1':'Utah State',
+    'r64-west-2':'High Point',      'r64-west-3':'Arkansas',
+    'r64-west-4':'Texas/NC St',     'r64-west-5':'Gonzaga',
+    'r64-west-6':'Missouri',        'r64-west-7':'Purdue',
+    // R32: Arizona>UtahSt  Arkansas>HighPoint  Gonzaga>Texas/NCSt  Purdue>Missouri
+    'r32-west-0':'Arizona',         'r32-west-1':'Arkansas',
+    'r32-west-2':'Gonzaga',         'r32-west-3':'Purdue',
+    // S16: Arkansas(4)>Arizona(1) UPSET!  Purdue(2)>Gonzaga(3)
+    's16-west-0':'Arkansas',        's16-west-1':'Purdue',
+    // E8: Purdue > Arkansas
+    'e8-west-0':'Purdue',
 
     // ── SOUTH ─────────────────────────────────────────────────────
-    // R64: Houston(1)✓  TexasAM(9)>Nebraska(8)  McNeese(12)>Gonzaga(5)  Auburn(4)✓
-    //      BYU(6)✓  Purdue(3)✓  Furman(10)>WashSt(7)  Marquette(2)✓
-    'r64-south-0':'Houston',      'r64-south-1':'Texas A&M',
-    'r64-south-2':'McNeese St',   'r64-south-3':'Auburn',
-    'r64-south-4':'BYU',          'r64-south-5':'Purdue',
-    'r64-south-6':'Furman',       'r64-south-7':'Marquette',
-    // R32: Houston>TexasAM  Auburn>McNeese  BYU(6)>Purdue(3) UPSET!  Marquette>Furman
-    'r32-south-0':'Houston',      'r32-south-1':'Auburn',
-    'r32-south-2':'BYU',          'r32-south-3':'Marquette',
-    // S16: Houston>Auburn  Marquette(2)>BYU(6)
-    's16-south-0':'Houston',      's16-south-1':'Marquette',
-    // E8: Marquette(2)>Houston(1) UPSET!
-    'e8-south-0':'Marquette',
+    // R64: Florida(1)✓  Iowa(9)>Clemson(8)  McNeese(12)>Vanderbilt(5)  Nebraska(4)✓
+    //      N.Carolina(6)✓  Illinois(3)✓  TexasAM(10)>StMarys(7)  Houston(2)✓
+    'r64-south-0':'Florida',        'r64-south-1':'Iowa',
+    'r64-south-2':'McNeese',        'r64-south-3':'Nebraska',
+    'r64-south-4':'North Carolina', 'r64-south-5':'Illinois',
+    'r64-south-6':'Texas A&M',      'r64-south-7':'Houston',
+    // R32: Florida>Iowa  Nebraska>McNeese  Illinois>N.Carolina  Houston>TexasAM
+    'r32-south-0':'Florida',        'r32-south-1':'Nebraska',
+    'r32-south-2':'Illinois',       'r32-south-3':'Houston',
+    // S16: Florida>Nebraska  Houston(2)>Illinois(3)
+    's16-south-0':'Florida',        's16-south-1':'Houston',
+    // E8: Houston(2)>Florida(1) UPSET!
+    'e8-south-0':'Houston',
 
     // ── MIDWEST ───────────────────────────────────────────────────
-    // R64: UConn(1)✓  FlaAtl(9)>NW(8)  GrandCyn(12)>SanDiego(5)  Indiana(4)✓
-    //      OralRob(11)>MiamiFL(6)  Arkansas(3)✓  MissState(10)>Pitt(7)  NCarolina(2)✓
-    'r64-midwest-0':'Connecticut', 'r64-midwest-1':'Florida Atl',
-    'r64-midwest-2':'Grand Canyon','r64-midwest-3':'Indiana',
-    'r64-midwest-4':'Oral Roberts','r64-midwest-5':'Arkansas',
-    'r64-midwest-6':'Mississippi St','r64-midwest-7':'N. Carolina',
-    // R32: UConn>FlaAtl  Indiana>GrandCyn  Arkansas>OralRob  NCarolina>MissState
-    'r32-midwest-0':'Connecticut', 'r32-midwest-1':'Indiana',
-    'r32-midwest-2':'Arkansas',    'r32-midwest-3':'N. Carolina',
-    // S16: Indiana(4)>UConn(1) UPSET!  NCarolina(2)>Arkansas(3)
-    's16-midwest-0':'Indiana',    's16-midwest-1':'N. Carolina',
-    // E8: NCarolina(2)>Indiana(4)
-    'e8-midwest-0':'N. Carolina',
+    // R64: Michigan(1)✓  StLouis(9)>Georgia(8)  Akron(12)>TexasTech(5)  Alabama(4)✓
+    //      MIA OH/SMU(11)>Tennessee(6)  Virginia(3)✓  SantaClara(10)>Kentucky(7)  IowaState(2)✓
+    'r64-midwest-0':'Michigan',     'r64-midwest-1':'Saint Louis',
+    'r64-midwest-2':'Akron',        'r64-midwest-3':'Alabama',
+    'r64-midwest-4':'MIA OH/SMU',   'r64-midwest-5':'Virginia',
+    'r64-midwest-6':'Santa Clara',  'r64-midwest-7':'Iowa State',
+    // R32: Michigan>StLouis  Alabama>Akron  Virginia>MIAOH/SMU  IowaState>SantaClara
+    'r32-midwest-0':'Michigan',     'r32-midwest-1':'Alabama',
+    'r32-midwest-2':'Virginia',     'r32-midwest-3':'Iowa State',
+    // S16: Alabama(4)>Michigan(1) UPSET!  Iowa State(2)>Virginia(3)
+    's16-midwest-0':'Alabama',      's16-midwest-1':'Iowa State',
+    // E8: Iowa State(2)>Alabama(4)
+    'e8-midwest-0':'Iowa State',
 
     // ── FINAL FOUR ────────────────────────────────────────────────
-    // F4-0: West(Iowa St,4) vs East(Duke,1) → Duke
-    // F4-1: South(Marquette,2) vs Midwest(N.Carolina,2) → Marquette
-    'f4-0':'Duke',                'f4-1':'Marquette',
-    // Championship: Duke(1) beats Marquette(2)
+    // F4-0: West(Purdue,2) vs East(Duke,1) → Duke
+    // F4-1: South(Houston,2) vs Midwest(IowaState,2) → Houston
+    'f4-0':'Duke',                  'f4-1':'Houston',
+    // Championship: Duke(1) beats Houston(2)
     'champ-0':'Duke',
   };
 
