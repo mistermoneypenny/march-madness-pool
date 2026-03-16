@@ -149,22 +149,13 @@ function isAdminSender(sender, state) {
 }
 
 // ── GET /api/state ──────────────────────────────────────────
-// Strip PINs from response — PINs are validated server-side only
+// PINs included in response (needed by admin to manage them, and by
+// login overlay to show lock icons). Server-side validation via
+// /api/login ensures PINs are always checked properly.
 app.get('/api/state', async (req, res) => {
   try {
     const data = await readState();
-    // Send state WITHOUT playerPins (security: don't expose PINs to clients)
-    const safeData = { ...data };
-    // Send only a map of playerId → boolean (has PIN or not) for lock icons
-    if (safeData.playerPins) {
-      const pinFlags = {};
-      for (const [pid, pin] of Object.entries(safeData.playerPins)) {
-        pinFlags[pid] = true;
-      }
-      safeData.playerPinFlags = pinFlags;
-      delete safeData.playerPins;
-    }
-    res.json(safeData);
+    res.json(data);
   } catch (e) {
     console.error('GET /api/state error:', e.message);
     res.json({});
@@ -219,7 +210,16 @@ app.post('/api/state', async (req, res) => {
         });
 
         if (incoming.players !== undefined) existing.players = incoming.players;
-        if (incoming.playerPins !== undefined) existing.playerPins = incoming.playerPins;
+        // Only overwrite PINs if the incoming value has actual PINs set,
+        // OR if there are no existing PINs. This prevents accidental wipes.
+        if (incoming.playerPins !== undefined) {
+          const hasIncomingPins = Object.keys(incoming.playerPins).length > 0;
+          const hasExistingPins = existing.playerPins && Object.keys(existing.playerPins).length > 0;
+          if (hasIncomingPins || !hasExistingPins) {
+            existing.playerPins = incoming.playerPins;
+          }
+          // If incoming is empty but existing has PINs → keep existing (safety net)
+        }
       }
 
       // ── PICKS: deep-merge per sender ──

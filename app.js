@@ -206,8 +206,7 @@ let state = {
   rulesText:       '',     // pool rules text set by admin
   bonusPicks:   {},   // playerId -> { bonusId -> answer }
   bonusAnswers: {},   // bonusId -> correct answer
-  playerPins:   {},   // playerId -> 4-digit PIN string (admin only, not sent to non-admins)
-  playerPinFlags: {},  // playerId -> boolean (has PIN or not, sent to all clients)
+  playerPins:   {},   // playerId -> 4-digit PIN string
   liveScores:   {},   // ESPN shortName -> { t1: {name,score}, t2: {name,score}, status, statusDetail }
 };
 
@@ -514,7 +513,6 @@ function applyLoadedState(saved) {
   if (saved.bonusAnswers) state.bonusAnswers = saved.bonusAnswers;
   // PINs: server sends full PINs only to admin, pinFlags to everyone
   if (saved.playerPins)      state.playerPins      = saved.playerPins;
-  if (saved.playerPinFlags)  state.playerPinFlags   = saved.playerPinFlags;
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
@@ -590,7 +588,7 @@ function renderLoginOverlay() {
   state.players.forEach((p, i) => {
     const { total } = getPlayerTotalScore(p.id);
     const adminPlayer = (i === 0);
-    const hasPin = !!(state.playerPinFlags?.[p.id] || state.playerPins?.[p.id]);
+    const hasPin = !!(state.playerPins?.[p.id]);
     const btn = document.createElement('button');
     btn.className = 'login-player-btn' + (adminPlayer ? ' admin-player' : '');
     btn.innerHTML = `
