@@ -1791,31 +1791,39 @@ function loadDemoData() {
 
     // Generate bonus picks for each round from available options
     if (!state.bonusPicks[player.id]) state.bonusPicks[player.id] = {};
+    const demoPlayerNames = ['Cooper Flagg', 'Dylan Harper', 'Ace Bailey', 'VJ Edgecombe', 'Kasparas Jakucionis', 'Johni Broome'];
     Object.keys(BONUS_CONFIG).forEach(roundId => {
       BONUS_CONFIG[roundId].forEach(b => {
         if (b.type === 'multi') {
-          // e8_teams: auto-populated from player's E8 picks (handled at render time)
+          // e8_teams: auto-populated from player's E8 picks
           const e8Games = getGamesForRound('e8');
           const e8Picks = (state.picks[player.id] || {})['e8'] || {};
           state.bonusPicks[player.id][b.id] = e8Games.map(g => e8Picks[g.id] || '');
         } else if (b.type === 'select' && b.options) {
           // Pick a random option from the dropdown
-          const idx = Math.floor(rng() * b.options.length);
-          state.bonusPicks[player.id][b.id] = b.options[idx];
+          const opts = Array.isArray(b.options) ? b.options : ALL_TEAM_NAMES;
+          const idx = Math.floor(rng() * opts.length);
+          state.bonusPicks[player.id][b.id] = opts[idx];
         } else {
-          // Free text — leave empty for demo
-          state.bonusPicks[player.id][b.id] = '';
+          // Free text — pick a random player name for demo
+          const nameIdx = Math.floor(rng() * demoPlayerNames.length);
+          state.bonusPicks[player.id][b.id] = demoPlayerNames[nameIdx];
         }
       });
     });
   });
 
-  // Also set bonus answers from actual results for multi-type (E8 winners)
+  // Set correct bonus answers for ALL bonus questions
   const e8Games = getGamesForRound('e8');
-  state.bonusAnswers['e8_teams'] = e8Games.map(g => {
-    const w = getWinner(g.id);
-    return w ? w.name : '';
-  });
+  state.bonusAnswers = {
+    r64_conf: 'Big 12 Conference',
+    r32_buzzer: '3',
+    s16_diff: '22',
+    e8_scorer: 'Cooper Flagg',
+    e8_teams: e8Games.map(g => { const w = getWinner(g.id); return w ? w.name : ''; }),
+    f4_team3: 'Duke',
+    f4_num3: '12',
+  };
 
   // Full overwrite save (no _sender) so ALL players' picks are persisted
   const payload = {
