@@ -85,12 +85,19 @@ app.post('/api/state', async (req, res) => {
     const sender = incoming._sender; // player ID of the sender
 
     // Admin fields always overwrite
-    const adminFields = ['currentRound', 'roundStatus', 'results', 'players', 'rulesText', 'defaultPlayersKey', 'bonusAnswers', 'playerPins'];
+    const adminFields = ['currentRound', 'roundStatus', 'results', 'rulesText', 'defaultPlayersKey', 'bonusAnswers'];
     adminFields.forEach(field => {
       if (incoming[field] !== undefined) {
         existing[field] = incoming[field];
       }
     });
+
+    // Players and PINs: only overwrite if sender is admin (first player) or no sender (full save like demo)
+    const isAdmin = !sender || (existing.players?.length && sender === existing.players[0]?.id);
+    if (isAdmin) {
+      if (incoming.players !== undefined) existing.players = incoming.players;
+      if (incoming.playerPins !== undefined) existing.playerPins = incoming.playerPins;
+    }
 
     // Picks: deep-merge — only update picks for the sender, keep others untouched
     if (incoming.picks && sender) {
