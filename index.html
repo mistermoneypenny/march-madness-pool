@@ -186,11 +186,12 @@
     <p id="pin-error" class="pin-modal-error" style="display:none">Incorrect PIN. Try again.</p>
     <div class="pin-modal-btns">
       <button class="btn btn-secondary" onclick="closePinModal()">Cancel</button>
-      <button class="btn btn-primary" onclick="submitPin()">Enter</button>
+      <button class="btn btn-primary" id="pin-submit-btn" onclick="submitPin()">Enter</button>
     </div>
   </div>
 </div>
 
+<div id="offline-banner" class="offline-banner" style="display:none">⚠️ You're offline — picks will save when you reconnect</div>
 <div id="toast" class="toast" aria-live="polite"></div>
 
 <script src="app.js"></script>

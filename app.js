@@ -206,7 +206,8 @@ let state = {
   rulesText:       '',     // pool rules text set by admin
   bonusPicks:   {},   // playerId -> { bonusId -> answer }
   bonusAnswers: {},   // bonusId -> correct answer
-  playerPins:   {},   // playerId -> 4-digit PIN string
+  playerPins:   {},   // playerId -> 4-digit PIN string (admin only, not sent to non-admins)
+  playerPinFlags: {},  // playerId -> boolean (has PIN or not, sent to all clients)
   liveScores:   {},   // ESPN shortName -> { t1: {name,score}, t2: {name,score}, status, statusDetail }
 };
 
@@ -422,30 +423,57 @@ function getPlayerBonusDetails(playerId, roundId) {
 
 // ── PERSISTENCE ───────────────────────────────────────────────
 
-function saveState() {
-  const payload = {
-    currentRound: state.currentRound,
-    roundStatus: state.roundStatus,
-    players: state.players,
-    results: state.results,
-    picks: state.picks,
-    rulesText: state.rulesText,
-    defaultPlayersKey: DEFAULT_PLAYERS_KEY,
-    bonusPicks: state.bonusPicks,
-    bonusAnswers: state.bonusAnswers,
-    playerPins: state.playerPins,
-    _sender: state.sessionPlayer || state.currentPlayer,
-  };
-  // Save to server
-  fetch('/api/state', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload),
-  }).catch(err => {
-    console.warn('Save failed, using localStorage fallback:', err);
-    showToast('Save failed \u2014 working offline', 'error');
-  });
-  // Also cache in localStorage as offline fallback
+async function saveState() {
+  const sender = state.sessionPlayer || state.currentPlayer;
+  const admin = isAdmin();
+
+  let payload;
+  if (admin || !sender) {
+    // Admin sends everything — server accepts all fields from admin
+    payload = {
+      currentRound: state.currentRound,
+      roundStatus: state.roundStatus,
+      players: state.players,
+      results: state.results,
+      picks: state.picks,
+      rulesText: state.rulesText,
+      defaultPlayersKey: DEFAULT_PLAYERS_KEY,
+      bonusPicks: state.bonusPicks,
+      bonusAnswers: state.bonusAnswers,
+      playerPins: state.playerPins,
+      _sender: sender,
+    };
+  } else {
+    // Non-admin only sends own picks and bonus picks — server ignores admin fields
+    payload = {
+      picks: { [sender]: state.picks[sender] || {} },
+      bonusPicks: { [sender]: state.bonusPicks[sender] || {} },
+      _sender: sender,
+    };
+  }
+
+  // Save to server with confirmation
+  try {
+    const res = await fetch('/api/state', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      throw new Error(errData.error || `HTTP ${res.status}`);
+    }
+  } catch (err) {
+    console.warn('Save failed:', err);
+    showToast('Save failed — try again', 'error');
+    // Cache in localStorage as offline fallback
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ ...payload, _offlineSave: true }));
+    } catch (e) { /* ignore */ }
+    throw err; // re-throw so callers know it failed
+  }
+
+  // Also cache in localStorage
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   } catch (e) { /* ignore */ }
@@ -484,7 +512,9 @@ function applyLoadedState(saved) {
   if (saved.rulesText !== undefined) state.rulesText = saved.rulesText;
   if (saved.bonusPicks)   state.bonusPicks   = saved.bonusPicks;
   if (saved.bonusAnswers) state.bonusAnswers = saved.bonusAnswers;
-  if (saved.playerPins)   state.playerPins   = saved.playerPins;
+  // PINs: server sends full PINs only to admin, pinFlags to everyone
+  if (saved.playerPins)      state.playerPins      = saved.playerPins;
+  if (saved.playerPinFlags)  state.playerPinFlags   = saved.playerPinFlags;
 }
 
 // ── TOAST ─────────────────────────────────────────────────────
@@ -501,6 +531,11 @@ function showToast(msg, type = 'info') {
 // ── VIEW SWITCHING ────────────────────────────────────────────
 
 function switchView(view) {
+  // Warn if leaving picks view with unsaved changes
+  if (state.currentView === 'picks' && view !== 'picks' && Object.keys(state.pendingPicks || {}).length > 0) {
+    if (!confirm('You have unsaved picks. Leave without saving?')) return;
+    state.pendingPicks = {};
+  }
   state.currentView = view;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
@@ -555,7 +590,7 @@ function renderLoginOverlay() {
   state.players.forEach((p, i) => {
     const { total } = getPlayerTotalScore(p.id);
     const adminPlayer = (i === 0);
-    const hasPin = !!(state.playerPins[p.id]);
+    const hasPin = !!(state.playerPinFlags?.[p.id] || state.playerPins?.[p.id]);
     const btn = document.createElement('button');
     btn.className = 'login-player-btn' + (adminPlayer ? ' admin-player' : '');
     btn.innerHTML = `
@@ -590,21 +625,49 @@ function showPinModal(playerId, playerName) {
   setTimeout(() => input.focus(), 50);
 }
 
-function submitPin() {
+async function submitPin() {
   const modal = document.getElementById('pin-modal');
   const input = document.getElementById('pin-input');
   const errEl = document.getElementById('pin-error');
+  const submitBtn = document.getElementById('pin-submit-btn');
   const playerId = modal.dataset.playerId;
   const entered = input.value.trim();
-  const correct = state.playerPins[playerId];
 
-  if (entered === correct) {
-    modal.style.display = 'none';
-    loginAs(playerId);
-  } else {
-    errEl.style.display = 'block';
-    input.value = '';
-    input.focus();
+  // Disable button during validation
+  if (submitBtn) submitBtn.disabled = true;
+
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId, pin: entered }),
+    });
+    const data = await res.json();
+    if (data.ok) {
+      modal.style.display = 'none';
+      loginAs(playerId);
+    } else {
+      errEl.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  } catch (e) {
+    // Network error — fall back to client-side check if admin has PINs loaded
+    const correct = state.playerPins?.[playerId];
+    if (correct && entered === correct) {
+      modal.style.display = 'none';
+      loginAs(playerId);
+    } else if (!correct) {
+      // Can't validate — let them in (no PIN data available)
+      modal.style.display = 'none';
+      loginAs(playerId);
+    } else {
+      errEl.style.display = 'block';
+      input.value = '';
+      input.focus();
+    }
+  } finally {
+    if (submitBtn) submitBtn.disabled = false;
   }
 }
 
@@ -1371,14 +1434,18 @@ function updateSaveStatus() {
   statusEl.textContent = `${picked} / ${games.length} games picked`;
 }
 
-function savePicks() {
+async function savePicks() {
   const pid = state.currentPlayer;
   const rid = state.activePicksRound;
   if (!pid) return;
   if (!state.picks[pid]) state.picks[pid] = {};
   state.picks[pid][rid] = { ...state.pendingPicks };
-  saveState();
-  showToast('Picks saved!', 'success');
+  try {
+    await saveState();
+    showToast('Picks saved!', 'success');
+  } catch (e) {
+    showToast('Save failed — please try again!', 'error');
+  }
   renderPicks();
 }
 
@@ -1876,7 +1943,7 @@ function renderPinsAdmin() {
   });
 }
 
-function savePins() {
+async function savePins() {
   const inputs = document.querySelectorAll('.pin-admin-input');
   inputs.forEach(inp => {
     const pid = inp.dataset.playerId;
@@ -1887,8 +1954,12 @@ function savePins() {
       delete state.playerPins[pid];
     }
   });
-  saveState();
-  showToast('PINs saved!', 'success');
+  try {
+    await saveState();
+    showToast('PINs saved!', 'success');
+  } catch (e) {
+    showToast('Failed to save PINs — try again', 'error');
+  }
 }
 
 function populateRoundSelects() {
@@ -2168,6 +2239,8 @@ async function init() {
 }
 
 // ── LIVE SCORES POLLING ──────────────────────────────────────
+let scoresTimer = null;
+
 async function fetchLiveScores() {
   try {
     const resp = await fetch('/api/scores');
@@ -2182,7 +2255,12 @@ async function fetchLiveScores() {
 
 function startScoresPolling() {
   fetchLiveScores(); // immediate
-  setInterval(fetchLiveScores, 60000); // every 60 seconds
+  if (scoresTimer) clearInterval(scoresTimer);
+  scoresTimer = setInterval(fetchLiveScores, 60000);
+}
+
+function stopScoresPolling() {
+  if (scoresTimer) { clearInterval(scoresTimer); scoresTimer = null; }
 }
 
 // ── POLLING ──────────────────────────────────────────────────
@@ -2202,19 +2280,19 @@ function startPolling() {
     rulesText: state.rulesText,
     bonusPicks: state.bonusPicks,
     bonusAnswers: state.bonusAnswers,
-    playerPins: state.playerPins,
   });
 
   pollTimer = setInterval(pollServer, 8000);
 
-  // Pause polling when tab is hidden
+  // Pause ALL polling when tab is hidden, resume on return
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) {
-      clearInterval(pollTimer);
-      pollTimer = null;
+      clearInterval(pollTimer);  pollTimer = null;
+      stopScoresPolling();
     } else {
       pollServer(); // immediate refresh on return
       pollTimer = setInterval(pollServer, 8000);
+      startScoresPolling();
     }
   });
 }
@@ -2248,5 +2326,22 @@ async function pollServer() {
     // silently ignore poll errors
   }
 }
+
+// ── UNSAVED PICKS WARNING ─────────────────────────────────────
+// Warn users before they close the tab with unsaved picks
+window.addEventListener('beforeunload', (e) => {
+  if (Object.keys(state.pendingPicks || {}).length > 0) {
+    e.preventDefault();
+    e.returnValue = 'You have unsaved picks. Are you sure you want to leave?';
+  }
+});
+
+// ── OFFLINE DETECTION ─────────────────────────────────────────
+function updateOnlineStatus() {
+  const banner = document.getElementById('offline-banner');
+  if (banner) banner.style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online',  updateOnlineStatus);
+window.addEventListener('offline', updateOnlineStatus);
 
 document.addEventListener('DOMContentLoaded', init);

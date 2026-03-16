@@ -18,8 +18,60 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 app.use(express.json({ limit: '1mb' }));
 app.use(express.static(__dirname));
 
-// ── Helper: read state from JSONBin (with local cache fallback) ──
+// ── IN-MEMORY STATE CACHE ────────────────────────────────────
+// Avoid hammering JSONBin on every poll (8 clients × every 8s = 60 reads/min)
+let memoryState = null;
+let lastJsonBinRead = 0;
+const JSONBIN_READ_INTERVAL = 30000; // only read from JSONBin every 30s
+
+// ── WRITE MUTEX ──────────────────────────────────────────────
+// Prevents race conditions when multiple players save simultaneously
+let writeLock = Promise.resolve();
+
+function withWriteLock(fn) {
+  const next = writeLock.then(fn).catch(fn);
+  writeLock = next.then(() => {}, () => {});
+  return next;
+}
+
+// ── SIMPLE RATE LIMITER ──────────────────────────────────────
+const requestCounts = {};
+const RATE_WINDOW = 10000; // 10 seconds
+const MAX_REQUESTS = 30;   // max per window per IP
+
+function rateLimit(req, res, next) {
+  const ip = req.ip || req.connection.remoteAddress;
+  const now = Date.now();
+  if (!requestCounts[ip] || now - requestCounts[ip].start > RATE_WINDOW) {
+    requestCounts[ip] = { start: now, count: 1 };
+  } else {
+    requestCounts[ip].count++;
+  }
+  if (requestCounts[ip].count > MAX_REQUESTS) {
+    return res.status(429).json({ error: 'Too many requests' });
+  }
+  next();
+}
+app.use('/api/', rateLimit);
+
+// Clean up rate limit entries periodically
+setInterval(() => {
+  const now = Date.now();
+  for (const ip in requestCounts) {
+    if (now - requestCounts[ip].start > RATE_WINDOW * 2) delete requestCounts[ip];
+  }
+}, 60000);
+
+// ── Helper: read state (memory → JSONBin → local file) ──────
 async function readState() {
+  const now = Date.now();
+
+  // Return memory cache if fresh
+  if (memoryState && (now - lastJsonBinRead < JSONBIN_READ_INTERVAL)) {
+    return memoryState;
+  }
+
+  // Try JSONBin
   try {
     const resp = await fetch(`${JSONBIN_URL}/latest`, {
       headers: { 'X-Master-Key': JSONBIN_KEY },
@@ -27,130 +79,208 @@ async function readState() {
     if (resp.ok) {
       const body = await resp.json();
       const data = body.record || {};
-      // Cache locally
-      fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
+      memoryState = data;
+      lastJsonBinRead = now;
+      // Cache locally (atomic write: write to temp, then rename)
+      const tmpFile = DATA_FILE + '.tmp';
+      fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf8');
+      fs.renameSync(tmpFile, DATA_FILE);
       return data;
     }
   } catch (e) {
-    console.warn('JSONBin read failed, using local cache:', e.message);
+    console.warn('JSONBin read failed, using cache:', e.message);
   }
-  // Fallback to local file
+
+  // Return memory cache even if stale
+  if (memoryState) return memoryState;
+
+  // Last resort: local file
   try {
     if (fs.existsSync(DATA_FILE)) {
       const raw = fs.readFileSync(DATA_FILE, 'utf8');
-      if (raw.trim()) return JSON.parse(raw);
+      if (raw.trim()) {
+        memoryState = JSON.parse(raw);
+        return memoryState;
+      }
     }
   } catch (e) { /* ignore */ }
   return {};
 }
 
-// ── Helper: write state to JSONBin (and local cache) ──
+// ── Helper: write state to memory + local + JSONBin ─────────
 async function writeState(data) {
-  // Always write local cache first (fast)
-  fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), 'utf8');
-  // Then persist to JSONBin (async, don't block response)
+  // Update memory cache immediately
+  memoryState = data;
+  lastJsonBinRead = Date.now();
+
+  // Write local cache (atomic)
   try {
-    await fetch(JSONBIN_URL, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Master-Key': JSONBIN_KEY,
-      },
-      body: JSON.stringify(data),
-    });
+    const tmpFile = DATA_FILE + '.tmp';
+    fs.writeFileSync(tmpFile, JSON.stringify(data, null, 2), 'utf8');
+    fs.renameSync(tmpFile, DATA_FILE);
   } catch (e) {
-    console.warn('JSONBin write failed:', e.message);
+    console.warn('Local write failed:', e.message);
+  }
+
+  // Persist to JSONBin (with retry)
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const resp = await fetch(JSONBIN_URL, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Master-Key': JSONBIN_KEY,
+        },
+        body: JSON.stringify(data),
+      });
+      if (resp.ok) return; // success
+      console.warn(`JSONBin write attempt ${attempt + 1} failed: ${resp.status}`);
+    } catch (e) {
+      console.warn(`JSONBin write attempt ${attempt + 1} error:`, e.message);
+    }
+    // Brief delay before retry
+    if (attempt === 0) await new Promise(r => setTimeout(r, 1000));
   }
 }
 
+// ── Helper: check if sender is admin ────────────────────────
+function isAdminSender(sender, state) {
+  return !sender || (state.players?.length && sender === state.players[0]?.id);
+}
+
 // ── GET /api/state ──────────────────────────────────────────
+// Strip PINs from response — PINs are validated server-side only
 app.get('/api/state', async (req, res) => {
   try {
     const data = await readState();
-    res.json(data);
+    // Send state WITHOUT playerPins (security: don't expose PINs to clients)
+    const safeData = { ...data };
+    // Send only a map of playerId → boolean (has PIN or not) for lock icons
+    if (safeData.playerPins) {
+      const pinFlags = {};
+      for (const [pid, pin] of Object.entries(safeData.playerPins)) {
+        pinFlags[pid] = true;
+      }
+      safeData.playerPinFlags = pinFlags;
+      delete safeData.playerPins;
+    }
+    res.json(safeData);
   } catch (e) {
     console.error('GET /api/state error:', e.message);
     res.json({});
   }
 });
 
+// ── POST /api/login ─────────────────────────────────────────
+// Server-side PIN validation
+app.post('/api/login', async (req, res) => {
+  try {
+    const { playerId, pin } = req.body;
+    if (!playerId) return res.status(400).json({ ok: false, error: 'Missing playerId' });
+
+    const data = await readState();
+    const storedPin = data.playerPins?.[playerId];
+
+    if (!storedPin) {
+      // No PIN set → allow login
+      return res.json({ ok: true });
+    }
+    if (String(pin).trim() === String(storedPin).trim()) {
+      return res.json({ ok: true });
+    }
+    return res.status(401).json({ ok: false, error: 'Incorrect PIN' });
+  } catch (e) {
+    console.error('POST /api/login error:', e.message);
+    res.status(500).json({ ok: false, error: 'Server error' });
+  }
+});
+
 // ── POST /api/state ─────────────────────────────────────────
-// Smart merge: admin fields overwrite, picks merge per-player
+// Smart merge with write lock to prevent race conditions
 app.post('/api/state', async (req, res) => {
   try {
-    // Read existing state
-    let existing = await readState();
+    const result = await withWriteLock(async () => {
+      // Read existing state (from memory cache — fast)
+      let existing = await readState();
 
-    const incoming = req.body;
-    const sender = incoming._sender; // player ID of the sender
+      const incoming = req.body;
+      const sender = incoming._sender; // player ID of the sender
+      const admin = isAdminSender(sender, existing);
 
-    // Admin fields always overwrite
-    const adminFields = ['currentRound', 'roundStatus', 'results', 'rulesText', 'defaultPlayersKey', 'bonusAnswers'];
-    adminFields.forEach(field => {
-      if (incoming[field] !== undefined) {
-        existing[field] = incoming[field];
+      // ── ADMIN-ONLY FIELDS ──
+      // Only admin (or no-sender bulk saves) can modify these
+      if (admin) {
+        const adminFields = ['currentRound', 'roundStatus', 'results', 'rulesText',
+                             'defaultPlayersKey', 'bonusAnswers'];
+        adminFields.forEach(field => {
+          if (incoming[field] !== undefined) {
+            existing[field] = incoming[field];
+          }
+        });
+
+        if (incoming.players !== undefined) existing.players = incoming.players;
+        if (incoming.playerPins !== undefined) existing.playerPins = incoming.playerPins;
       }
+
+      // ── PICKS: deep-merge per sender ──
+      if (incoming.picks && sender) {
+        if (!existing.picks) existing.picks = {};
+        existing.picks[sender] = incoming.picks[sender] || {};
+      } else if (incoming.picks && !sender) {
+        // Bulk save (admin/demo) — overwrite all picks
+        existing.picks = incoming.picks;
+      }
+
+      // ── BONUS PICKS: deep-merge per sender ──
+      if (incoming.bonusPicks && sender) {
+        if (!existing.bonusPicks) existing.bonusPicks = {};
+        existing.bonusPicks[sender] = incoming.bonusPicks[sender] || {};
+      } else if (incoming.bonusPicks && !sender) {
+        existing.bonusPicks = incoming.bonusPicks;
+      }
+
+      await writeState(existing);
+      return { ok: true };
     });
-
-    // Players and PINs: only overwrite if sender is admin (first player) or no sender (full save like demo)
-    const isAdmin = !sender || (existing.players?.length && sender === existing.players[0]?.id);
-    if (isAdmin) {
-      if (incoming.players !== undefined) existing.players = incoming.players;
-      if (incoming.playerPins !== undefined) existing.playerPins = incoming.playerPins;
-    }
-
-    // Picks: deep-merge — only update picks for the sender, keep others untouched
-    if (incoming.picks && sender) {
-      if (!existing.picks) existing.picks = {};
-      existing.picks[sender] = incoming.picks[sender] || {};
-    } else if (incoming.picks && !sender) {
-      existing.picks = incoming.picks;
-    }
-
-    // Bonus picks: deep-merge per sender, same as regular picks
-    if (incoming.bonusPicks && sender) {
-      if (!existing.bonusPicks) existing.bonusPicks = {};
-      existing.bonusPicks[sender] = incoming.bonusPicks[sender] || {};
-    } else if (incoming.bonusPicks && !sender) {
-      existing.bonusPicks = incoming.bonusPicks;
-    }
-
-    // currentPlayer is per-browser, don't store on server
-    // (each client tracks their own currentPlayer locally)
-
-    await writeState(existing);
-    res.json({ ok: true });
+    res.json(result);
   } catch (e) {
     console.error('POST /api/state error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
+// ── HEALTH CHECK ─────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'ok',
+    uptime: Math.floor(process.uptime()),
+    memoryCache: !!memoryState,
+    lastJsonBinSync: lastJsonBinRead ? new Date(lastJsonBinRead).toISOString() : null,
+  });
+});
+
 // ── ESPN SCORES ──────────────────────────────────────────────
-// Fetch live/final scores from ESPN's public API
 const ESPN_BASE = 'https://site.api.espn.com/apis/site/v2/sports/basketball/mens-college-basketball/scoreboard';
 
-// Tournament dates by round (March Madness 2026)
 const TOURNAMENT_DATES = [
   '20260317', '20260318',  // First Four
   '20260319', '20260320',  // Round of 64
   '20260321', '20260322',  // Round of 32
   '20260327', '20260328',  // Sweet 16
-  '20260329', '20260330',  // Elite 8 (sometimes same weekend)
+  '20260329', '20260330',  // Elite 8
   '20260404', '20260405',  // Final Four
   '20260407',              // Championship
 ];
 
 let cachedScores = {};
 let lastScoresFetch = 0;
-const SCORES_CACHE_MS = 60000; // refresh every 60 seconds
+const SCORES_CACHE_MS = 60000;
 
 async function fetchESPNScores() {
   const now = Date.now();
   if (now - lastScoresFetch < SCORES_CACHE_MS) return cachedScores;
 
   const scores = {};
-  // Only fetch dates that are today or in the past (plus today +1 for timezone)
   const today = new Date();
   const todayStr = today.toISOString().slice(0, 10).replace(/-/g, '');
   const tomorrow = new Date(today.getTime() + 86400000);
@@ -159,38 +289,39 @@ async function fetchESPNScores() {
   const datesToFetch = TOURNAMENT_DATES.filter(d => d <= tomorrowStr);
   if (datesToFetch.length === 0) return cachedScores;
 
-  for (const date of datesToFetch) {
-    try {
+  // Fetch all dates in parallel for faster response
+  const results = await Promise.allSettled(
+    datesToFetch.map(async (date) => {
       const resp = await fetch(`${ESPN_BASE}?dates=${date}&groups=100`);
-      if (!resp.ok) continue;
+      if (!resp.ok) return [];
       const data = await resp.json();
-      if (!data.events) continue;
+      return data.events || [];
+    })
+  );
 
-      for (const event of data.events) {
-        const comp = event.competitions?.[0];
-        if (!comp) continue;
-        const status = comp.status?.type?.state || 'pre'; // pre, in, post
-        if (status === 'pre') continue; // skip games that haven't started
+  for (const result of results) {
+    if (result.status !== 'fulfilled') continue;
+    for (const event of result.value) {
+      const comp = event.competitions?.[0];
+      if (!comp) continue;
+      const status = comp.status?.type?.state || 'pre';
+      if (status === 'pre') continue;
 
-        const teams = comp.competitors || [];
-        if (teams.length < 2) continue;
+      const teams = comp.competitors || [];
+      if (teams.length < 2) continue;
 
-        // ESPN lists home team first, away second (or vice versa)
-        const team1 = teams[0];
-        const team2 = teams[1];
+      const team1 = teams[0];
+      const team2 = teams[1];
 
-        const gameName = event.shortName || '';
-        scores[gameName] = {
-          t1: { name: team1.team?.shortDisplayName || team1.team?.displayName || '', score: parseInt(team1.score) || 0, seed: team1.curatedRank?.current || 0 },
-          t2: { name: team2.team?.shortDisplayName || team2.team?.displayName || '', score: parseInt(team2.score) || 0, seed: team2.curatedRank?.current || 0 },
-          status: status, // 'in' = live, 'post' = final
-          statusDetail: comp.status?.type?.shortDetail || '',
-          clock: comp.status?.displayClock || '',
-          period: comp.status?.period || 0,
-        };
-      }
-    } catch (e) {
-      console.warn(`ESPN fetch failed for ${date}:`, e.message);
+      const gameName = event.shortName || '';
+      scores[gameName] = {
+        t1: { name: team1.team?.shortDisplayName || team1.team?.displayName || '', score: parseInt(team1.score) || 0, seed: team1.curatedRank?.current || 0 },
+        t2: { name: team2.team?.shortDisplayName || team2.team?.displayName || '', score: parseInt(team2.score) || 0, seed: team2.curatedRank?.current || 0 },
+        status: status,
+        statusDetail: comp.status?.type?.shortDetail || '',
+        clock: comp.status?.displayClock || '',
+        period: comp.status?.period || 0,
+      };
     }
   }
 
@@ -199,7 +330,6 @@ async function fetchESPNScores() {
   return scores;
 }
 
-// API endpoint for client to get scores
 app.get('/api/scores', async (req, res) => {
   try {
     const scores = await fetchESPNScores();
@@ -209,6 +339,22 @@ app.get('/api/scores', async (req, res) => {
     res.json({});
   }
 });
+
+// ── GRACEFUL SHUTDOWN ────────────────────────────────────────
+async function shutdown(signal) {
+  console.log(`\n${signal} received. Syncing state to JSONBin...`);
+  if (memoryState) {
+    try {
+      await writeState(memoryState);
+      console.log('State synced. Shutting down.');
+    } catch (e) {
+      console.error('Final sync failed:', e.message);
+    }
+  }
+  process.exit(0);
+}
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
 app.listen(PORT, () => {
   console.log(`March Madness Pool running at http://localhost:${PORT}`);
