@@ -2221,10 +2221,11 @@ async function init() {
   state.games = buildGames();
   await loadState();
 
-  // Seed default players if none
+  // Seed default players locally if server returned none (UI fallback only — never save
+  // defaults to server, which would overwrite real players like Jeremy & Callum)
   if (!state.players.length) {
     state.players = DEFAULT_PLAYERS.map(p => ({ ...p, id: uid() }));
-    saveState();
+    // Do NOT call saveState() here — these are just local defaults for the UI
   }
   if (!state.currentPlayer && state.players.length) {
     state.currentPlayer = state.players[0].id;

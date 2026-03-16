@@ -209,7 +209,16 @@ app.post('/api/state', async (req, res) => {
           }
         });
 
-        if (incoming.players !== undefined) existing.players = incoming.players;
+        // Players: only overwrite if sender is the actual admin player ID.
+        // No-sender requests (like init seeding) must NOT overwrite existing players.
+        if (incoming.players !== undefined) {
+          const hasExistingPlayers = existing.players && existing.players.length > 0;
+          const isRealAdmin = sender && existing.players?.length && sender === existing.players[0]?.id;
+          if (isRealAdmin || !hasExistingPlayers) {
+            existing.players = incoming.players;
+          }
+          // If no sender and existing players exist → keep existing (prevents init() overwrite)
+        }
         // Only overwrite PINs if the incoming value has actual PINs set,
         // OR if there are no existing PINs. This prevents accidental wipes.
         if (incoming.playerPins !== undefined) {
