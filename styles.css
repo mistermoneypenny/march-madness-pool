@@ -350,7 +350,19 @@ a { color: var(--orange); }
 .pick-o-result.wrong   { background: rgba(231,76,60,0.2);  color: var(--red); }
 .pick-o-result.won     { background: rgba(46,204,113,0.1); color: var(--green); font-size: 0.6rem; }
 
-.pick-option input[type="radio"] { accent-color: var(--orange); flex-shrink: 0; }
+.pick-option input[type="radio"] {
+  -webkit-appearance: none; appearance: none; flex-shrink: 0;
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid var(--border-2); background: transparent;
+  margin: 0; cursor: pointer; transition: all 0.15s;
+}
+.pick-option input[type="radio"]:checked {
+  border-color: var(--orange); background: var(--orange);
+  box-shadow: inset 0 0 0 3px var(--surface);
+}
+.pick-option.disabled input[type="radio"] { cursor: default; }
+.pick-option.result-correct input[type="radio"]:checked { border-color: var(--green); background: var(--green); }
+.pick-option.result-wrong input[type="radio"]:checked { border-color: var(--red); background: var(--red); }
 
 /* SAVE BAR */
 .save-bar { position: sticky; bottom: 0; background: var(--surface); border-top: 1px solid var(--border); padding: 0.6rem 1.25rem; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; z-index: 50; }
