@@ -475,13 +475,7 @@ async function loadState() {
 }
 
 function applyLoadedState(saved) {
-  if (saved.defaultPlayersKey !== DEFAULT_PLAYERS_KEY) {
-    if (saved.results)      state.results     = saved.results;
-    if (saved.currentRound) state.currentRound = saved.currentRound;
-    if (saved.roundStatus)  state.roundStatus  = saved.roundStatus;
-    if (saved.rulesText !== undefined) state.rulesText = saved.rulesText;
-    return;
-  }
+  // Always load all server data — picks, players, PINs are managed on the server
   if (saved.players?.length)  state.players  = saved.players;
   if (saved.results)          state.results  = saved.results;
   if (saved.picks)            state.picks    = saved.picks;
