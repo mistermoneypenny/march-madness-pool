@@ -123,6 +123,13 @@
         </div>
 
         <div class="admin-card">
+          <h3 class="admin-card-title">Bonus Answers</h3>
+          <p style="color:var(--text-3);font-size:0.8rem;margin-bottom:0.5rem">Bonus questions for the round selected above. Player scores update automatically.</p>
+          <div id="bonus-answers-grid"><!-- Populated by JS --></div>
+          <button class="btn btn-primary" id="save-bonus-btn" style="margin-top:0.5rem">Save Bonus Answers</button>
+        </div>
+
+        <div class="admin-card">
           <h3 class="admin-card-title">Manage Players</h3>
           <div class="admin-row" style="margin-bottom:0.75rem">
             <input type="text" id="new-player-input" class="text-input" placeholder="New player name..." maxlength="30" />
@@ -136,13 +143,6 @@
           <p style="color:var(--text-3);font-size:0.8rem;margin-bottom:0.5rem">Set a 4-digit PIN for each player to protect their login. Leave blank for no PIN.</p>
           <div id="pins-grid"><!-- Populated by JS --></div>
           <button class="btn btn-primary" id="save-pins-btn" style="margin-top:0.5rem">Save PINs</button>
-        </div>
-
-        <div class="admin-card">
-          <h3 class="admin-card-title">Bonus Answers</h3>
-          <p style="color:var(--text-3);font-size:0.8rem;margin-bottom:0.5rem">Bonus questions for the round selected above. Player scores update automatically.</p>
-          <div id="bonus-answers-grid"><!-- Populated by JS --></div>
-          <button class="btn btn-primary" id="save-bonus-btn" style="margin-top:0.5rem">Save Bonus Answers</button>
         </div>
 
         <div class="admin-card">
