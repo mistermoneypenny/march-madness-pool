@@ -477,6 +477,8 @@ a { color: var(--orange); }
 .bonus-input-label { font-size: 0.8rem; color: var(--text-3); min-width: 60px; }
 .bonus-input { flex: 1; background: var(--surface-1); border: 1px solid var(--border-2); border-radius: 6px; padding: 0.4rem 0.6rem; color: var(--text-1); font-size: 0.85rem; }
 select.bonus-input { cursor: pointer; appearance: auto; }
+select.bonus-input option { background: #1a1a2e; color: #e0e0e0; }
+.sel-input option { background: #1a1a2e; color: #e0e0e0; }
 .bonus-input:disabled { opacity: 0.5; cursor: not-allowed; }
 .bonus-input:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 2px rgba(52,152,219,0.2); }
 .bonus-result { margin-top: 0.5rem; padding: 0.35rem 0.6rem; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
