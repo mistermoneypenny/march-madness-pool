@@ -119,7 +119,7 @@ const INITIAL_TEAMS = {
     { seed: 4,  name: 'Arkansas'     },
     { seed: 13, name: "Hawai'i"      },
     { seed: 6,  name: 'BYU'          },
-    { seed: 11, name: 'Texas/NC St'  },
+    { seed: 11, name: 'Texas'        },
     { seed: 3,  name: 'Gonzaga'      },
     { seed: 14, name: 'Kennesaw St'  },
     { seed: 7,  name: 'Miami'        },
@@ -129,7 +129,7 @@ const INITIAL_TEAMS = {
   ],
   South: [
     { seed: 1,  name: 'Florida'      },
-    { seed: 16, name: 'UMBC/Howard'  },
+    { seed: 16, name: 'Howard'       },
     { seed: 8,  name: 'Clemson'      },
     { seed: 9,  name: 'Iowa'         },
     { seed: 5,  name: 'Vanderbilt'   },
@@ -1765,12 +1765,12 @@ function loadDemoData() {
 
     // ── WEST ──────────────────────────────────────────────────────
     // R64: Arizona(1)✓  UtahSt(9)>Villanova(8)  HighPoint(12)>Wisconsin(5)  Arkansas(4)✓
-    //      Texas/NCSt(11)>BYU(6)  Gonzaga(3)✓  Missouri(10)>Miami(7)  Purdue(2)✓
+    //      Texas(11)>BYU(6)  Gonzaga(3)✓  Missouri(10)>Miami(7)  Purdue(2)✓
     'r64-west-0':'Arizona',         'r64-west-1':'Utah State',
     'r64-west-2':'High Point',      'r64-west-3':'Arkansas',
-    'r64-west-4':'Texas/NC St',     'r64-west-5':'Gonzaga',
+    'r64-west-4':'Texas',     'r64-west-5':'Gonzaga',
     'r64-west-6':'Missouri',        'r64-west-7':'Purdue',
-    // R32: Arizona>UtahSt  Arkansas>HighPoint  Gonzaga>Texas/NCSt  Purdue>Missouri
+    // R32: Arizona>UtahSt  Arkansas>HighPoint  Gonzaga>Texas  Purdue>Missouri
     'r32-west-0':'Arizona',         'r32-west-1':'Arkansas',
     'r32-west-2':'Gonzaga',         'r32-west-3':'Purdue',
     // S16: Arkansas(4)>Arizona(1) UPSET!  Purdue(2)>Gonzaga(3)
