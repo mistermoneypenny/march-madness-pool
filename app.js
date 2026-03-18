@@ -1150,7 +1150,14 @@ function renderPicksBody() {
   const isLocked = !isAdminView && isCurrentRound && state.roundStatus === 'locked';
 
   const savedPicks = (state.picks[viewId] || {})[roundId] || {};
-  state.pendingPicks = isAdminView ? {} : { ...savedPicks };
+  // Preserve unsaved picks if re-rendering same round (e.g. during poll refresh)
+  const hasPending = Object.keys(state.pendingPicks || {}).length > 0;
+  const sameRound = state.activePicksRound === roundId;
+  if (isAdminView) {
+    state.pendingPicks = {};
+  } else if (!(hasPending && sameRound)) {
+    state.pendingPicks = { ...savedPicks };
+  }
 
   // Admin peek banner
   if (isAdminView) {
@@ -2296,6 +2303,12 @@ function startPolling() {
   });
 }
 
+function hasUnsavedPicks() {
+  if (state.currentView !== 'picks') return false;
+  const pending = state.pendingPicks || {};
+  return Object.keys(pending).length > 0;
+}
+
 async function pollServer() {
   try {
     const res = await fetch('/api/state');
@@ -2318,8 +2331,19 @@ async function pollServer() {
     if (newHash === lastStateHash) return; // nothing changed
     lastStateHash = newHash;
 
-    // Apply server state without clobbering local UI state
+    // If user is actively making picks, preserve their unsaved work
+    const unsaved = hasUnsavedPicks();
+    const savedPending = unsaved ? { ...state.pendingPicks } : null;
+    const savedBonusPending = unsaved ? { ...(state.pendingBonusPicks || {}) } : null;
+
     applyLoadedState(saved);
+
+    // Restore unsaved picks so the user doesn't lose work
+    if (unsaved && savedPending) {
+      state.pendingPicks = savedPending;
+      if (savedBonusPending) state.pendingBonusPicks = savedBonusPending;
+    }
+
     renderCurrentView();
   } catch (e) {
     // silently ignore poll errors
