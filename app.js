@@ -1916,10 +1916,78 @@ function loadDemoData() {
 
 function renderAdmin() {
   populateRoundSelects();
+  renderPickStatusGrid();
   renderResultsGrid();
   renderPlayersList();
   renderPinsAdmin();
   renderBonusAdmin();
+}
+
+function renderPickStatusGrid() {
+  const container = document.getElementById('pick-status-grid');
+  if (!container) return;
+  container.innerHTML = '';
+
+  // Build table
+  const table = document.createElement('table');
+  table.className = 'pick-status-table';
+
+  // Header row
+  const thead = document.createElement('thead');
+  const headerRow = document.createElement('tr');
+  const playerTh = document.createElement('th');
+  playerTh.textContent = 'Player';
+  headerRow.appendChild(playerTh);
+  ROUND_CONFIG.forEach(cfg => {
+    const th = document.createElement('th');
+    th.textContent = cfg.short;
+    headerRow.appendChild(th);
+  });
+  thead.appendChild(headerRow);
+  table.appendChild(thead);
+
+  // Body rows — one per player
+  const tbody = document.createElement('tbody');
+  state.players.forEach(p => {
+    const row = document.createElement('tr');
+    const nameTd = document.createElement('td');
+    nameTd.textContent = p.name;
+    nameTd.className = 'pick-status-name';
+    row.appendChild(nameTd);
+
+    ROUND_CONFIG.forEach(cfg => {
+      const td = document.createElement('td');
+      td.className = 'pick-status-cell';
+      const games = getGamesForRound(cfg.id);
+      // Only count games where both teams are determined
+      const playableGames = games.filter(g => {
+        const t1 = getTeam(g.team1);
+        const t2 = getTeam(g.team2);
+        return t1 && t2;
+      });
+      const playerPicks = (state.picks[p.id] || {})[cfg.id] || {};
+      const picked = playableGames.filter(g => playerPicks[g.id]).length;
+      const total = playableGames.length;
+
+      if (total === 0) {
+        td.textContent = '—';
+        td.classList.add('pick-status-na');
+      } else if (picked === total) {
+        td.textContent = '✓';
+        td.classList.add('pick-status-complete');
+      } else if (picked > 0) {
+        td.textContent = `${picked}/${total}`;
+        td.classList.add('pick-status-partial');
+      } else {
+        td.textContent = '✗';
+        td.classList.add('pick-status-none');
+      }
+      row.appendChild(td);
+    });
+    tbody.appendChild(row);
+  });
+  table.appendChild(tbody);
+  container.appendChild(table);
 }
 
 function renderPinsAdmin() {
