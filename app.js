@@ -2435,3 +2435,8 @@ window.addEventListener('online',  updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ── SERVICE WORKER (PWA) ──────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(() => {});
+}
