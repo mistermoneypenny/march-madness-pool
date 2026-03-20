@@ -1970,16 +1970,22 @@ function renderPickStatusGrid() {
       });
       const playerPicks = (state.picks[p.id] || {})[cfg.id] || {};
       const picked = playableGames.filter(g => playerPicks[g.id]).length;
-      const total = playableGames.length;
+      const totalPlayable = playableGames.length;
+      const totalExpected = games.length; // all games in this round
 
-      if (total === 0) {
+      if (totalPlayable === 0) {
         td.textContent = '—';
         td.classList.add('pick-status-na');
-      } else if (picked === total) {
+      } else if (picked === totalExpected) {
+        // All games in the round are picked (round fully complete)
         td.textContent = '✓';
         td.classList.add('pick-status-complete');
+      } else if (picked === totalPlayable && totalPlayable < totalExpected) {
+        // Picked all available games, but round isn't fully determined yet
+        td.textContent = `${picked}/${totalExpected}`;
+        td.classList.add('pick-status-partial');
       } else if (picked > 0) {
-        td.textContent = `${picked}/${total}`;
+        td.textContent = `${picked}/${totalExpected}`;
         td.classList.add('pick-status-partial');
       } else {
         td.textContent = '✗';
