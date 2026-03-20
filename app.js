@@ -1961,8 +1961,7 @@ function renderPickStatusGrid() {
       const games = getGamesForRound(cfg.id);
       // Only count games where both teams are determined
       const playableGames = games.filter(g => {
-        const t1 = getTeam(g.team1);
-        const t2 = getTeam(g.team2);
+        const { t1, t2 } = getTeams(g);
         return t1 && t2;
       });
       const playerPicks = (state.picks[p.id] || {})[cfg.id] || {};
