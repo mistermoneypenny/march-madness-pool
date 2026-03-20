@@ -1497,8 +1497,12 @@ function renderLbBody() {
     return { player: p, total, byRound };
   });
 
-  // Sort by total score desc
-  rows.sort((a, b) => b.total.total - a.total.total);
+  // Sort by total score desc, then by possible (higher upside first), then by name
+  rows.sort((a, b) => {
+    if (b.total.total !== a.total.total) return b.total.total - a.total.total;
+    if (b.total.possible !== a.total.possible) return b.total.possible - a.total.possible;
+    return a.player.name.localeCompare(b.player.name);
+  });
 
   const table = document.createElement('table');
   table.className = 'lb-table';
@@ -2321,9 +2325,49 @@ async function fetchLiveScores() {
     const scores = await resp.json();
     if (scores && Object.keys(scores).length) {
       state.liveScores = scores;
+      // Auto-set results from completed games (admin only)
+      if (isAdmin()) {
+        autoSetResultsFromScores();
+      }
       renderCurrentView();
     }
   } catch (e) { /* ignore */ }
+}
+
+// Automatically set game results when ESPN reports a game as final
+function autoSetResultsFromScores() {
+  if (!state.liveScores) return;
+  let newResults = 0;
+
+  // Check all bracket games across all rounds
+  for (const game of Object.values(state.games)) {
+    // Skip if result already set
+    if (state.results[game.id]) continue;
+
+    const { t1, t2 } = getTeams(game);
+    if (!t1 || !t2) continue;
+
+    const scoreData = findGameScore(t1, t2);
+    if (!scoreData || scoreData.status !== 'post') continue;
+
+    // Game is final — determine winner by score
+    const score1 = parseInt(scoreData.t1.score) || 0;
+    const score2 = parseInt(scoreData.t2.score) || 0;
+    if (score1 === score2) continue; // shouldn't happen but skip ties
+
+    // scoreData.t1/t2 are already matched to our bracket's t1/t2 order
+    // (findGameScore handles order matching)
+    const winnerName = score1 > score2 ? t1.name : t2.name;
+
+    state.results[game.id] = winnerName;
+    newResults++;
+  }
+
+  if (newResults > 0) {
+    fixInvalidPicks();
+    saveState();
+    showToast(`${newResults} result${newResults > 1 ? 's' : ''} auto-updated from ESPN`, 'success');
+  }
 }
 
 function startScoresPolling() {
