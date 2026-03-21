@@ -443,9 +443,11 @@ async function saveState() {
       _sender: sender,
     };
   } else {
-    // Non-admin only sends own picks and bonus picks — server ignores admin fields
+    // Non-admin only sends own picks for the active round — prevents stale round data
+    const activeRound = state.activePicksRound || state.currentRound;
+    const roundPicks = (state.picks[sender] || {})[activeRound] || {};
     payload = {
-      picks: { [sender]: state.picks[sender] || {} },
+      picks: { [sender]: { [activeRound]: roundPicks } },
       bonusPicks: { [sender]: state.bonusPicks[sender] || {} },
       _sender: sender,
     };

@@ -231,12 +231,17 @@ app.post('/api/state', async (req, res) => {
         }
       }
 
-      // ── PICKS: deep-merge per sender ──
+      // ── PICKS: deep-merge per sender, per round ──
       if (incoming.picks && sender) {
         if (!existing.picks) existing.picks = {};
-        existing.picks[sender] = incoming.picks[sender] || {};
-      } else if (incoming.picks && !sender) {
-        // Bulk save (admin/demo) — overwrite all picks
+        if (!existing.picks[sender]) existing.picks[sender] = {};
+        const senderPicks = incoming.picks[sender] || {};
+        // Merge each round individually so saving R64 doesn't wipe R32 etc.
+        for (const roundId of Object.keys(senderPicks)) {
+          existing.picks[sender][roundId] = senderPicks[roundId];
+        }
+      } else if (incoming.picks && admin) {
+        // Admin bulk save — overwrite all picks (for demo/reset)
         existing.picks = incoming.picks;
       }
 
