@@ -1361,9 +1361,10 @@ function buildPickCard(game, t1, t2, winner, isOpen, savedPicks, cfg) {
 
   const savedPick = savedPicks[game.id];
 
+  const isAdminPeek = !!state.adminViewPlayer;
   [t1, t2].forEach(team => {
     if (!team) return;
-    const isPicked        = state.pendingPicks[game.id] === team.name;
+    const isPicked        = isAdminPeek ? (savedPick === team.name) : (state.pendingPicks[game.id] === team.name);
     const isPlayerPick    = savedPick === team.name;
     const row = document.createElement('div');
     row.className = 'pick-option';
