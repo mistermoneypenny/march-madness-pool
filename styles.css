@@ -341,7 +341,7 @@ a { color: var(--orange); }
 .pick-card-hdr-label { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); }
 .pick-pts  { font-size: 0.65rem; font-weight: 600; color: var(--orange); }
 .pick-tbd  { padding: 0.5rem 0.6rem; font-size: 0.75rem; color: var(--text-3); font-style: italic; }
-.pick-option { display: grid; grid-template-columns: 16px 16px 1fr 30px 42px 60px; align-items: center; gap: 0.3rem; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); font-size: 0.78rem; cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent; }
+.pick-option { display: grid; grid-template-columns: 16px 18px 1fr 36px 44px 62px; align-items: center; gap: 0.3rem; padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); font-size: 0.78rem; cursor: pointer; transition: background 0.1s; border-left: 3px solid transparent; }
 .pick-option:last-child { border-bottom: none; }
 .pick-option.selected  { background: rgba(240,124,42,0.12); border-left-color: var(--orange); }
 .pick-option.disabled  { cursor: default; }
@@ -358,6 +358,7 @@ a { color: var(--orange); }
 .pick-o-result.correct { background: rgba(46,204,113,0.2); color: var(--green); }
 .pick-o-result.wrong   { background: rgba(231,76,60,0.2);  color: var(--red); }
 .pick-o-result.won     { background: rgba(46,204,113,0.1); color: var(--green); font-size: 0.6rem; }
+.pick-card-status-final { font-size: 0.65rem; color: var(--text-3); font-weight: 400; opacity: 0.7; }
 
 .pick-option input[type="radio"] {
   -webkit-appearance: none; appearance: none; flex-shrink: 0;

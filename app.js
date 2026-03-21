@@ -1364,9 +1364,9 @@ function buildPickCard(game, t1, t2, winner, isOpen, savedPicks, cfg) {
   hdr.className = 'pick-card-hdr';
   let hdrExtra = '';
   if (liveScore && liveScore.status === 'in') {
-    hdrExtra = `<span class="game-live-tag" style="font-size:0.65rem;padding:1px 6px;margin-left:0.4rem">${liveScore.statusDetail || 'LIVE'}</span>`;
+    hdrExtra = ` <span class="game-live-tag" style="font-size:0.65rem;padding:1px 6px;margin-left:0.2rem">${liveScore.statusDetail || 'LIVE'}</span>`;
   } else if (liveScore && liveScore.status === 'post') {
-    hdrExtra = '<span style="color:var(--text-3);font-size:0.65rem;margin-left:0.4rem">FINAL</span>';
+    hdrExtra = ' <span class="pick-card-status-final">— Final</span>';
   }
   hdr.innerHTML = `<span class="pick-card-hdr-label">${esc(regionLabel)}${hdrExtra}</span>
     <span class="pick-pts">${cfg.pts} pt${cfg.pts > 1 ? 's' : ''}</span>`;
