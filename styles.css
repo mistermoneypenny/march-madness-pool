@@ -63,7 +63,7 @@ a { color: var(--orange); }
 
 .header-brand { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
 .brand-icon { font-size: 1.6rem; line-height: 1; }
-.brand-icon-img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+.brand-icon-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
 .brand-title { font-size: 1.1rem; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
 .brand-sub { font-size: 0.7rem; color: var(--text-2); display: block; margin-top: -2px; }
 
