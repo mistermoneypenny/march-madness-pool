@@ -1587,6 +1587,33 @@ function renderLbBody() {
     if (best > 0) roundBest[cfg.id] = best;
   });
 
+  // Determine "Upset Queen" — player with the most points earned from upset picks
+  let upsetQueenId = null;
+  let bestUpsetPts = 0;
+  rows.forEach(r => {
+    let upsetPts = 0;
+    ROUND_CONFIG.forEach(cfg => {
+      const roundPicks = (state.picks[r.player.id] || {})[cfg.id] || {};
+      getGamesForRound(cfg.id).forEach(game => {
+        const pick = roundPicks[game.id];
+        const result = state.results[game.id];
+        if (!pick || pick !== result) return;
+        const { t1, t2 } = getTeams(game);
+        if (!t1 || !t2) return;
+        const fav = t1.seed <= t2.seed ? t1 : t2;
+        const dog = fav === t1 ? t2 : t1;
+        if (dog.seed !== fav.seed && pick === dog.name) {
+          upsetPts += calcPickPoints(game, pick, cfg) - cfg.pts; // bonus portion only
+        }
+      });
+    });
+    if (upsetPts > bestUpsetPts || (upsetPts === bestUpsetPts && r.total.total > (rows.find(x => x.player.id === upsetQueenId)?.total.total || 0))) {
+      bestUpsetPts = upsetPts;
+      upsetQueenId = r.player.id;
+    }
+  });
+  if (bestUpsetPts <= 0) upsetQueenId = null;
+
   // Header
   const thead = document.createElement('thead');
   let thHTML = '<tr><th>#</th><th>Player</th>';
@@ -1627,9 +1654,10 @@ function renderLbBody() {
     const fireLevel = fireMap[row.player.id] || 0;
     const fireEmojis = '&#128293;'.repeat(fireLevel);
     const fireTag = fireLevel ? ` <span class="lb-fire lb-fire-${fireLevel}" title="Hot streak — top scorer in the last 4 games">${fireEmojis}</span>` : '';
+    const queenTag = upsetQueenId === row.player.id ? ' <span class="lb-upset-queen" title="Most points from upsets">&#128120; Upset Queen!!!!!</span>' : '';
     let tdHTML = `<td class="rank-num ${rankCls}">${rankIcon}</td>
       <td class="${nameClass}">
-        <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}
+        <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}${queenTag}
       </td>`;
 
     if (state.lbRound === 'all') {

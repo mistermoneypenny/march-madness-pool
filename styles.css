@@ -400,6 +400,8 @@ a { color: var(--orange); }
 .lb-lock-icon { font-size: 0.65rem; opacity: 0.6; }
 .lb-fire { font-size: 1.1rem; margin-left: 0.3rem; animation: fire-pulse 1.5s ease-in-out infinite; }
 @keyframes fire-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.6; transform: scale(1.15); } }
+.lb-upset-queen { font-size: 0.75rem; margin-left: 0.4rem; color: #e74c3c; font-weight: 700; font-style: italic; animation: queen-bounce 2s ease-in-out infinite; display: inline-block; }
+@keyframes queen-bounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 .lb-total    { font-weight: 700; font-variant-numeric: tabular-nums; }
 .lb-wl       { display: block; font-size: 0.72rem; margin-top: 2px; color: var(--text-2); }
 .lb-wl-row   { font-size: 0.72rem; color: var(--text-2); }
