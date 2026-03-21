@@ -679,6 +679,7 @@ function loginAs(pid) {
   state.sessionPlayer   = pid;
   state.currentPlayer   = pid;
   state.adminViewPlayer = null;
+  sessionStorage.setItem('mm_session', pid);
   document.getElementById('login-overlay').style.display = 'none';
   updateSessionHeader();
   updatePlayerSelect();
@@ -688,6 +689,7 @@ function loginAs(pid) {
 function logoutSession() {
   state.sessionPlayer   = null;
   state.adminViewPlayer = null;
+  sessionStorage.removeItem('mm_session');
   renderLoginOverlay();
 }
 
@@ -2429,7 +2431,15 @@ async function init() {
   }
 
   setupEvents();
-  renderLoginOverlay();
+
+  // Restore session from previous page load (skip PIN re-entry)
+  const savedSession = sessionStorage.getItem('mm_session');
+  if (savedSession && state.players.some(p => p.id === savedSession)) {
+    loginAs(savedSession);
+  } else {
+    renderLoginOverlay();
+  }
+
   startPolling();
   startScoresPolling();
 }
