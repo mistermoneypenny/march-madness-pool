@@ -1553,7 +1553,6 @@ function renderLbBody() {
       </td>`;
 
     if (state.lbRound === 'all') {
-      const maxPossible = row.total.total + row.total.possible;
       const maxScore = ROUND_CONFIG.reduce((sum, cfg) => sum + cfg.pts * getGamesForRound(cfg.id).length, 0);
       const pctW = Math.min(100, Math.round((row.total.total / maxScore) * 100));
       const wl = row.total.correct || row.total.wrong
@@ -1561,7 +1560,7 @@ function renderLbBody() {
         : '';
       tdHTML += `<td><span class="lb-total">${fmtScore(row.total.total)}</span>${wl}
           <div class="pct-bar-wrap"><div class="pct-bar" style="width:${pctW}%"></div></div></td>
-        <td class="lb-possible">${fmtScore(maxPossible)}</td>`;
+        <td class="lb-possible">${fmtScore(row.total.total)}</td>`;
       ROUND_CONFIG.forEach(cfg => {
         const s = row.byRound[cfg.id];
         const wlTip = s.correct || s.wrong ? ` title="${s.correct}✔ ${s.wrong}✘"` : '';
