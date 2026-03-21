@@ -1656,7 +1656,7 @@ function renderLbBody() {
     const fireLevel = fireMap[row.player.id] || 0;
     const fireEmojis = '&#128293;'.repeat(fireLevel);
     const fireTag = fireLevel ? ` <span class="lb-fire lb-fire-${fireLevel}" title="Hot streak — top scorer in the last 4 games">${fireEmojis}</span>` : '';
-    const queenTag = upsetQueenId === row.player.id ? ' <span class="lb-upset-queen" title="Most points from upsets">&#128120; Upset Queen!!!!!</span>' : '';
+    const queenTag = upsetQueenId === row.player.id ? ' <span class="lb-queen-emoji" title="Most points from upsets">&#128120;</span><span class="lb-upset-queen"> Upset Queen!!!!!</span>' : '';
     let tdHTML = `<td class="rank-num ${rankCls}">${rankIcon}</td>
       <td class="${nameClass}">
         <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}${queenTag}
