@@ -1544,14 +1544,29 @@ function renderLbBody() {
   const table = document.createElement('table');
   table.className = 'lb-table';
 
+  // Determine "on fire" players — top scorer(s) in the most recent round that has results
+  const hotPlayers = new Set();
+  for (let ri = ROUND_CONFIG.length - 1; ri >= 0; ri--) {
+    const rid = ROUND_CONFIG[ri].id;
+    const hasResults = rows.some(r => r.byRound[rid].correct > 0 || r.byRound[rid].wrong > 0);
+    if (!hasResults) continue;
+    // Find the max score in this round
+    let maxRoundScore = 0;
+    rows.forEach(r => { if (r.byRound[rid].score > maxRoundScore) maxRoundScore = r.byRound[rid].score; });
+    if (maxRoundScore > 0) {
+      rows.forEach(r => { if (r.byRound[rid].score === maxRoundScore) hotPlayers.add(r.player.id); });
+    }
+    break;
+  }
+
   // Header
   const thead = document.createElement('thead');
   let thHTML = '<tr><th>#</th><th>Player</th>';
   if (state.lbRound === 'all') {
-    thHTML += '<th>Score</th><th>Total</th>';
+    thHTML += '<th>Score</th>';
     ROUND_CONFIG.forEach(cfg => { thHTML += `<th class="num">${cfg.short}</th>`; });
   } else {
-    thHTML += '<th class="num">Score</th><th class="num">Total</th>';
+    thHTML += '<th class="num">Score</th>';
   }
   thHTML += '</tr>';
   thead.innerHTML = thHTML;
@@ -1581,9 +1596,10 @@ function renderLbBody() {
     const btnTitle   = cantPeek ? ' title="You can only view your own picks"'
       : linkLocked ? ' title="Picks revealed when the round is closed"' : '';
 
+    const fireTag = hotPlayers.has(row.player.id) ? ' <span class="lb-fire" title="Top scorer in the latest round">&#128293;</span>' : '';
     let tdHTML = `<td class="rank-num ${rankCls}">${rankIcon}</td>
       <td class="${nameClass}">
-        <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>
+        <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}
       </td>`;
 
     if (state.lbRound === 'all') {
@@ -1593,8 +1609,7 @@ function renderLbBody() {
         ? `<span class="lb-wl"><span class="lb-w">${row.total.correct}✔</span> <span class="lb-l">${row.total.wrong}✘</span></span>`
         : '';
       tdHTML += `<td><span class="lb-total">${fmtScore(row.total.total)}</span>${wl}
-          <div class="pct-bar-wrap"><div class="pct-bar" style="width:${pctW}%"></div></div></td>
-        <td class="lb-possible">${fmtScore(row.total.total)}</td>`;
+          <div class="pct-bar-wrap"><div class="pct-bar" style="width:${pctW}%"></div></div></td>`;
       ROUND_CONFIG.forEach(cfg => {
         const s = row.byRound[cfg.id];
         const wlTip = s.correct || s.wrong ? ` title="${s.correct}✔ ${s.wrong}✘"` : '';
@@ -1605,8 +1620,7 @@ function renderLbBody() {
       const wl = s.correct || s.wrong
         ? `<div class="lb-wl-row"><span class="lb-w">${s.correct} correct</span> <span class="lb-l">${s.wrong} wrong</span></div>`
         : '';
-      tdHTML += `<td class="num"><span class="lb-total">${fmtScore(s.score)}</span>${wl}</td>
-        <td class="lb-possible num">${fmtScore(s.score + s.possible)}</td>`;
+      tdHTML += `<td class="num"><span class="lb-total">${fmtScore(s.score)}</span>${wl}</td>`;
     }
 
     tr.innerHTML = tdHTML;
