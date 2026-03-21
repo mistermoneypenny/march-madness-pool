@@ -1559,6 +1559,16 @@ function renderLbBody() {
     break;
   }
 
+  // Compute best score per round (for highlighting)
+  const roundBest = {};
+  ROUND_CONFIG.forEach(cfg => {
+    const hasAny = rows.some(r => r.byRound[cfg.id].correct > 0 || r.byRound[cfg.id].wrong > 0);
+    if (!hasAny) return;
+    let best = 0;
+    rows.forEach(r => { if (r.byRound[cfg.id].score > best) best = r.byRound[cfg.id].score; });
+    if (best > 0) roundBest[cfg.id] = best;
+  });
+
   // Header
   const thead = document.createElement('thead');
   let thHTML = '<tr><th>#</th><th>Player</th>';
@@ -1613,7 +1623,8 @@ function renderLbBody() {
       ROUND_CONFIG.forEach(cfg => {
         const s = row.byRound[cfg.id];
         const wlTip = s.correct || s.wrong ? ` title="${s.correct}✔ ${s.wrong}✘"` : '';
-        tdHTML += `<td class="lb-round-score num ${s.score === 0 && !s.correct && !s.wrong ? 'zero' : ''}"${wlTip}>${fmtScore(s.score)}</td>`;
+        const isBest = roundBest[cfg.id] && s.score === roundBest[cfg.id];
+        tdHTML += `<td class="lb-round-score num ${s.score === 0 && !s.correct && !s.wrong ? 'zero' : ''}${isBest ? ' round-best' : ''}"${wlTip}>${fmtScore(s.score)}</td>`;
       });
     } else {
       const s = row.byRound[state.lbRound];

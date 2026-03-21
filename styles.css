@@ -407,6 +407,7 @@ a { color: var(--orange); }
 .lb-l        { color: var(--red); }
 .lb-possible { color: var(--text-2); }
 .lb-round-score.zero { color: var(--text-3); }
+.lb-round-score.round-best { color: var(--green); font-weight: 700; background: rgba(46,204,113,0.1); border-radius: 3px; }
 .pct-bar-wrap { height: 3px; background: var(--surface-3); border-radius: 2px; margin-top: 4px; overflow: hidden; }
 .pct-bar { height: 100%; background: var(--orange); border-radius: 2px; transition: width 0.3s; }
 
@@ -452,7 +453,7 @@ a { color: var(--orange); }
 .login-card { background: var(--surface); border: 1px solid var(--border-2); border-radius: 12px; padding: 2rem 2.5rem; width: 100%; max-width: 420px; box-shadow: 0 8px 40px rgba(0,0,0,0.5); }
 .login-brand { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1.5rem; justify-content: center; }
 .login-brand-icon  { font-size: 2rem; line-height: 1; }
-.login-brand-icon-img { width: 60px; height: 60px; border-radius: 50%; object-fit: cover; }
+.login-brand-icon-img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; }
 .login-brand-title { font-size: 1.15rem; font-weight: 700; color: var(--text); }
 .login-brand-sub   { font-size: 0.75rem; color: var(--text-2); }
 .login-heading { font-size: 1rem; font-weight: 700; color: var(--text); margin-bottom: 1rem; text-align: center; }
