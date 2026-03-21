@@ -1556,9 +1556,9 @@ function renderLbBody() {
       if (recentGames.length < 4) recentGames.push({ game: g, cfg });
     });
   }
-  let hotPlayerId = null;
+  // Score each player's streak across the last 4 games, then rank top 3
+  const streakScores = [];
   if (recentGames.length > 0) {
-    let bestScore = -1, bestTotal = -1, bestName = '';
     rows.forEach(r => {
       let streak = 0;
       recentGames.forEach(({ game, cfg }) => {
@@ -1567,15 +1567,15 @@ function renderLbBody() {
           streak += calcPickPoints(game, pick, cfg);
         }
       });
-      if (streak > bestScore
-        || (streak === bestScore && r.total.total > bestTotal)
-        || (streak === bestScore && r.total.total === bestTotal && r.player.name < bestName)) {
-        bestScore = streak; bestTotal = r.total.total; bestName = r.player.name;
-        hotPlayerId = r.player.id;
-      }
+      streakScores.push({ id: r.player.id, streak, total: r.total.total, name: r.player.name });
     });
-    if (bestScore <= 0) hotPlayerId = null;
+    streakScores.sort((a, b) => b.streak - a.streak || b.total - a.total || a.name.localeCompare(b.name));
   }
+  // Map player IDs to fire level: 3🔥, 2🔥, 1🔥
+  const fireMap = {};
+  if (streakScores.length >= 1 && streakScores[0].streak > 0) fireMap[streakScores[0].id] = 3;
+  if (streakScores.length >= 2 && streakScores[1].streak > 0) fireMap[streakScores[1].id] = 2;
+  if (streakScores.length >= 3 && streakScores[2].streak > 0) fireMap[streakScores[2].id] = 1;
 
   // Compute best score per round (for highlighting)
   const roundBest = {};
@@ -1624,7 +1624,9 @@ function renderLbBody() {
     const btnTitle   = cantPeek ? ' title="You can only view your own picks"'
       : linkLocked ? ' title="Picks revealed when the round is closed"' : '';
 
-    const fireTag = hotPlayerId === row.player.id ? ' <span class="lb-fire" title="Hot streak — top scorer in the last 4 games">&#128293;&#128293;&#128293;</span>' : '';
+    const fireLevel = fireMap[row.player.id] || 0;
+    const fireEmojis = '&#128293;'.repeat(fireLevel);
+    const fireTag = fireLevel ? ` <span class="lb-fire lb-fire-${fireLevel}" title="Hot streak — top scorer in the last 4 games">${fireEmojis}</span>` : '';
     let tdHTML = `<td class="rank-num ${rankCls}">${rankIcon}</td>
       <td class="${nameClass}">
         <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}
