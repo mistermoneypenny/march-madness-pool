@@ -1357,11 +1357,18 @@ function renderPicksBody() {
 function buildPickCard(game, t1, t2, winner, isOpen, savedPicks, cfg) {
   const card = document.createElement('div');
   card.className = 'pick-card';
+  const liveScore = findGameScore(t1, t2);
 
   const regionLabel = game.label || (game.region ? `${game.region}` : '');
   const hdr = document.createElement('div');
   hdr.className = 'pick-card-hdr';
-  hdr.innerHTML = `<span class="pick-card-hdr-label">${esc(regionLabel)}</span>
+  let hdrExtra = '';
+  if (liveScore && liveScore.status === 'in') {
+    hdrExtra = `<span class="game-live-tag" style="font-size:0.65rem;padding:1px 6px;margin-left:0.4rem">${liveScore.statusDetail || 'LIVE'}</span>`;
+  } else if (liveScore && liveScore.status === 'post') {
+    hdrExtra = '<span style="color:var(--text-3);font-size:0.65rem;margin-left:0.4rem">FINAL</span>';
+  }
+  hdr.innerHTML = `<span class="pick-card-hdr-label">${esc(regionLabel)}${hdrExtra}</span>
     <span class="pick-pts">${cfg.pts} pt${cfg.pts > 1 ? 's' : ''}</span>`;
   card.appendChild(hdr);
 
@@ -1415,9 +1422,18 @@ function buildPickCard(game, t1, t2, winner, isOpen, savedPicks, cfg) {
     const ptsTxt  = Number.isInteger(teamPts)
       ? `${teamPts} pt${teamPts !== 1 ? 's' : ''}`
       : `${teamPts} pts`;
+    // Live score for this team
+    let scoreHtml = '';
+    if (liveScore) {
+      const isT1 = t1 && team.name === t1.name;
+      const teamScoreData = isT1 ? liveScore.t1 : liveScore.t2;
+      const scoreClass = liveScore.status === 'post' ? 'score-final' : 'score-live';
+      scoreHtml = `<span class="t-score ${scoreClass}" style="margin-left:auto;margin-right:0.3rem;font-weight:700">${teamScoreData.score}</span>`;
+    }
     row.innerHTML = `
       <span class="pick-o-seed">${team.seed}</span>
       <span class="pick-o-name">${esc(team.name)}</span>
+      ${scoreHtml}
       <span class="pick-o-pts">${ptsTxt}</span>
       ${resultMark}`;
     row.insertBefore(radio, row.firstChild);
