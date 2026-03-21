@@ -129,7 +129,7 @@ const INITIAL_TEAMS = {
   ],
   South: [
     { seed: 1,  name: 'Florida'      },
-    { seed: 16, name: 'Howard'       },
+    { seed: 16, name: 'Prairie View'  },
     { seed: 8,  name: 'Clemson'      },
     { seed: 9,  name: 'Iowa'         },
     { seed: 5,  name: 'Vanderbilt'   },
@@ -147,7 +147,7 @@ const INITIAL_TEAMS = {
   ],
   Midwest: [
     { seed: 1,  name: 'Michigan'     },
-    { seed: 16, name: 'PV/Lehigh'    },
+    { seed: 16, name: 'Howard'        },
     { seed: 8,  name: 'Georgia'      },
     { seed: 9,  name: 'Saint Louis'  },
     { seed: 5,  name: 'Texas Tech'   },
@@ -155,7 +155,7 @@ const INITIAL_TEAMS = {
     { seed: 4,  name: 'Alabama'      },
     { seed: 13, name: 'Hofstra'      },
     { seed: 6,  name: 'Tennessee'    },
-    { seed: 11, name: 'MIA OH/SMU'   },
+    { seed: 11, name: 'Miami OH'      },
     { seed: 3,  name: 'Virginia'     },
     { seed: 14, name: 'Wright St'    },
     { seed: 7,  name: 'Kentucky'     },
@@ -1800,10 +1800,10 @@ function loadDemoData() {
 
     // ── MIDWEST ───────────────────────────────────────────────────
     // R64: Michigan(1)✓  StLouis(9)>Georgia(8)  Akron(12)>TexasTech(5)  Alabama(4)✓
-    //      MIA OH/SMU(11)>Tennessee(6)  Virginia(3)✓  SantaClara(10)>Kentucky(7)  IowaState(2)✓
+    //      Miami OH(11)>Tennessee(6)  Virginia(3)✓  SantaClara(10)>Kentucky(7)  IowaState(2)✓
     'r64-midwest-0':'Michigan',     'r64-midwest-1':'Saint Louis',
     'r64-midwest-2':'Akron',        'r64-midwest-3':'Alabama',
-    'r64-midwest-4':'MIA OH/SMU',   'r64-midwest-5':'Virginia',
+    'r64-midwest-4':'Miami OH',   'r64-midwest-5':'Virginia',
     'r64-midwest-6':'Santa Clara',  'r64-midwest-7':'Iowa State',
     // R32: Michigan>StLouis  Alabama>Akron  Virginia>MIAOH/SMU  IowaState>SantaClara
     'r32-midwest-0':'Michigan',     'r32-midwest-1':'Alabama',
