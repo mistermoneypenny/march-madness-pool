@@ -1447,7 +1447,12 @@ async function savePicks() {
   const rid = state.activePicksRound;
   if (!pid) return;
   if (!state.picks[pid]) state.picks[pid] = {};
-  state.picks[pid][rid] = { ...state.pendingPicks };
+  // Only save picks with game IDs that belong to this round
+  const validPicks = {};
+  for (const [gid, val] of Object.entries(state.pendingPicks)) {
+    if (gid.startsWith(rid + '-')) validPicks[gid] = val;
+  }
+  state.picks[pid][rid] = validPicks;
   try {
     await saveState();
     showToast('Picks saved!', 'success');
