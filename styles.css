@@ -383,7 +383,7 @@ a { color: var(--orange); }
 /* LEADERBOARD */
 .lb-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
 .lb-table th { text-align: left; padding: 0.4rem 0.75rem; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-3); border-bottom: 1px solid var(--border-2); }
-.lb-table th.num, .lb-table td.num { text-align: right; }
+.lb-table th.num, .lb-table td.num { text-align: center; }
 .lb-table td { padding: 0.55rem 0.75rem; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .lb-table tbody tr:last-child td { border-bottom: none; }
 .lb-table tbody tr:hover td { background: var(--surface-2); }
