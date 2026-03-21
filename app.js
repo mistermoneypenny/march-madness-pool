@@ -59,10 +59,10 @@ const BONUS_CONFIG = {
     { id: 'r64_conf', label: 'Most Successful Conference', points: 4, type: 'select', options: CONFERENCES },
   ],
   r32: [
-    { id: 'r32_buzzer', label: 'Correct Number of Buzzer Beaters', points: 6, type: 'select', options: Array.from({length: 32}, (_, i) => String(i + 1)) },
+    { id: 'r32_buzzer', label: 'Correct Number of Buzzer Beaters', points: 6, type: 'select', options: Array.from({length: 33}, (_, i) => String(i)) },
   ],
   s16: [
-    { id: 's16_diff', label: 'Highest Point Differential', points: 8, type: 'select', options: Array.from({length: 60}, (_, i) => String(i + 1)) },
+    { id: 's16_diff', label: 'Highest Point Differential', points: 8, type: 'select', options: Array.from({length: 61}, (_, i) => String(i)) },
   ],
   e8: [
     { id: 'e8_scorer', label: 'High Scorer (Player Name)', points: 10, type: 'text' },
@@ -70,7 +70,7 @@ const BONUS_CONFIG = {
   ],
   f4: [
     { id: 'f4_team3', label: 'Team with Most 3-Pointers', points: 6, type: 'select', options: '__ALL_TEAMS__' },
-    { id: 'f4_num3', label: 'Number of 3-Pointers Made', points: 6, type: 'select', options: Array.from({length: 40}, (_, i) => String(i + 1)) },
+    { id: 'f4_num3', label: 'Number of 3-Pointers Made', points: 6, type: 'select', options: Array.from({length: 41}, (_, i) => String(i)) },
   ],
 };
 
