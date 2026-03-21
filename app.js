@@ -1428,7 +1428,7 @@ function buildPickCard(game, t1, t2, winner, isOpen, savedPicks, cfg) {
       const isT1 = t1 && team.name === t1.name;
       const teamScoreData = isT1 ? liveScore.t1 : liveScore.t2;
       const scoreClass = liveScore.status === 'post' ? 'score-final' : 'score-live';
-      scoreHtml = `<span class="t-score ${scoreClass}" style="margin-left:auto;margin-right:0.3rem;font-weight:700">${teamScoreData.score}</span>`;
+      scoreHtml = `<span class="pick-o-score ${scoreClass}">${teamScoreData.score}</span>`;
     }
     row.innerHTML = `
       <span class="pick-o-seed">${team.seed}</span>

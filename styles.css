@@ -349,8 +349,11 @@ a { color: var(--orange); }
 .pick-option.result-correct { background: rgba(46,204,113,0.1); }
 .pick-option.result-wrong   { background: rgba(231,76,60,0.07); }
 .pick-o-seed { font-size: 0.65rem; font-weight: 700; color: var(--text-3); min-width: 14px; }
-.pick-o-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pick-o-pts  { font-size: 0.7rem; color: var(--text-2); white-space: nowrap; }
+.pick-o-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pick-o-score { margin-left: auto; font-weight: 700; font-size: 0.8rem; min-width: 24px; text-align: right; }
+.pick-o-score.score-final { color: var(--text-2); }
+.pick-o-score.score-live { color: var(--green); }
+.pick-o-pts  { font-size: 0.7rem; color: var(--text-2); white-space: nowrap; min-width: 36px; text-align: right; }
 .pick-o-result { font-size: 0.65rem; font-weight: 700; padding: 0.1rem 0.3rem; border-radius: 3px; white-space: nowrap; }
 .pick-o-result.correct { background: rgba(46,204,113,0.2); color: var(--green); }
 .pick-o-result.wrong   { background: rgba(231,76,60,0.2);  color: var(--red); }
