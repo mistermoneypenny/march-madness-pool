@@ -1544,25 +1544,37 @@ function renderLbBody() {
   const table = document.createElement('table');
   table.className = 'lb-table';
 
-  // Determine the single "on fire" player — best scorer in the most recent round with results
-  // Tiebreak: highest total score, then alphabetical
-  let hotPlayerId = null;
-  for (let ri = ROUND_CONFIG.length - 1; ri >= 0; ri--) {
+  // Determine "on fire" player — whoever scored the most points across the last 4 decided games
+  // Collect decided games from most recent round backwards
+  const recentGames = [];
+  for (let ri = ROUND_CONFIG.length - 1; ri >= 0 && recentGames.length < 4; ri--) {
     const rid = ROUND_CONFIG[ri].id;
-    const hasResults = rows.some(r => r.byRound[rid].correct > 0 || r.byRound[rid].wrong > 0);
-    if (!hasResults) continue;
-    let best = null;
+    const cfg = ROUND_CONFIG[ri];
+    const games = getGamesForRound(rid).filter(g => state.results[g.id]);
+    // Add from this round (reverse order so newest games come first)
+    games.reverse().forEach(g => {
+      if (recentGames.length < 4) recentGames.push({ game: g, cfg });
+    });
+  }
+  let hotPlayerId = null;
+  if (recentGames.length > 0) {
+    let bestScore = -1, bestTotal = -1, bestName = '';
     rows.forEach(r => {
-      const s = r.byRound[rid].score;
-      if (!best
-        || s > best.roundScore
-        || (s === best.roundScore && r.total.total > best.totalScore)
-        || (s === best.roundScore && r.total.total === best.totalScore && r.player.name < best.name)) {
-        best = { id: r.player.id, roundScore: s, totalScore: r.total.total, name: r.player.name };
+      let streak = 0;
+      recentGames.forEach(({ game, cfg }) => {
+        const pick = ((state.picks[r.player.id] || {})[cfg.id] || {})[game.id];
+        if (pick && pick === state.results[game.id]) {
+          streak += calcPickPoints(game, pick, cfg);
+        }
+      });
+      if (streak > bestScore
+        || (streak === bestScore && r.total.total > bestTotal)
+        || (streak === bestScore && r.total.total === bestTotal && r.player.name < bestName)) {
+        bestScore = streak; bestTotal = r.total.total; bestName = r.player.name;
+        hotPlayerId = r.player.id;
       }
     });
-    if (best && best.roundScore > 0) hotPlayerId = best.id;
-    break;
+    if (bestScore <= 0) hotPlayerId = null;
   }
 
   // Compute best score per round (for highlighting)
@@ -1612,7 +1624,7 @@ function renderLbBody() {
     const btnTitle   = cantPeek ? ' title="You can only view your own picks"'
       : linkLocked ? ' title="Picks revealed when the round is closed"' : '';
 
-    const fireTag = hotPlayerId === row.player.id ? ' <span class="lb-fire" title="Top scorer in the latest round">&#128293;</span>' : '';
+    const fireTag = hotPlayerId === row.player.id ? ' <span class="lb-fire" title="Hot streak — top scorer in the last 4 games">&#128293;&#128293;&#128293;</span>' : '';
     let tdHTML = `<td class="rank-num ${rankCls}">${rankIcon}</td>
       <td class="${nameClass}">
         <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}
