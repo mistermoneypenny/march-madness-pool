@@ -1124,6 +1124,13 @@ function renderPicksTabs() {
     else if (ri > ci) btn.classList.add('future');
 
     btn.addEventListener('click', () => {
+      // Warn if switching rounds with unsaved picks
+      const pending = Object.keys(state.pendingPicks || {}).filter(k => k.startsWith(state.activePicksRound + '-'));
+      const saved = (state.picks[state.currentPlayer] || {})[state.activePicksRound] || {};
+      const hasUnsaved = pending.some(k => state.pendingPicks[k] !== saved[k]);
+      if (hasUnsaved && !confirm('You have unsaved picks. Switch round without saving?')) return;
+      state.pendingPicks = {};
+      state.pendingPicksRound = cfg.id;
       state.activePicksRound = cfg.id;
       renderPicks();
     });
@@ -1152,13 +1159,18 @@ function renderPicksBody() {
   const isLocked = !isAdminView && isCurrentRound && state.roundStatus === 'locked';
 
   const savedPicks = (state.picks[viewId] || {})[roundId] || {};
-  // Preserve unsaved picks if re-rendering same round (e.g. during poll refresh)
+  // Preserve unsaved picks only if same round, same player, and during poll refresh
   const hasPending = Object.keys(state.pendingPicks || {}).length > 0;
-  const sameRound = state.activePicksRound === roundId;
+  const sameRound = state.pendingPicksRound === roundId;
+  const samePlayer = state.pendingPicksPlayer === viewId;
   if (isAdminView) {
     state.pendingPicks = {};
-  } else if (!(hasPending && sameRound)) {
+  } else if (hasPending && sameRound && samePlayer) {
+    // Keep existing pending picks (poll refresh case)
+  } else {
     state.pendingPicks = { ...savedPicks };
+    state.pendingPicksRound = roundId;
+    state.pendingPicksPlayer = viewId;
   }
 
   // Admin peek banner
@@ -1413,6 +1425,7 @@ function buildPickCard(game, t1, t2, winner, isOpen, savedPicks, cfg) {
     if (isOpen) {
       row.addEventListener('click', () => {
         state.pendingPicks[game.id] = team.name;
+        state.lastPickTime = Date.now();  // track for poll protection
         // Re-render pick card area
         document.querySelectorAll(`[name="game-${game.id}"]`).forEach(r => r.checked = false);
         radio.checked = true;
@@ -2208,6 +2221,9 @@ function setupEvents() {
   document.getElementById('player-select').addEventListener('change', e => {
     state.currentPlayer   = e.target.value;
     state.adminViewPlayer = null;   // exit any admin peek view
+    state.pendingPicks = {};        // reset pending picks for new player
+    state.pendingPicksRound = null;
+    state.pendingPicksPlayer = null;
     renderCurrentView();
   });
 
@@ -2455,17 +2471,26 @@ async function pollServer() {
     if (newHash === lastStateHash) return; // nothing changed
     lastStateHash = newHash;
 
-    // If user is actively making picks, preserve their unsaved work
+    // If user is actively making picks, preserve their unsaved work.
+    // Use timestamp to capture picks made DURING the async fetch too.
+    const prePickTime = state.lastPickTime || 0;
     const unsaved = hasUnsavedPicks();
     const savedPending = unsaved ? { ...state.pendingPicks } : null;
-    const savedBonusPending = unsaved ? { ...(state.pendingBonusPicks || {}) } : null;
+    const savedRound = state.pendingPicksRound;
+    const savedPlayer = state.pendingPicksPlayer;
 
     applyLoadedState(saved);
 
-    // Restore unsaved picks so the user doesn't lose work
-    if (unsaved && savedPending) {
-      state.pendingPicks = savedPending;
-      if (savedBonusPending) state.pendingBonusPicks = savedBonusPending;
+    // Restore unsaved picks — but use CURRENT state.pendingPicks if user
+    // made new picks during the fetch (lastPickTime changed)
+    if (unsaved) {
+      if (state.lastPickTime > prePickTime) {
+        // User made new picks during fetch — keep current pendingPicks as-is
+      } else if (savedPending) {
+        state.pendingPicks = savedPending;
+        state.pendingPicksRound = savedRound;
+        state.pendingPicksPlayer = savedPlayer;
+      }
     }
 
     renderCurrentView();
