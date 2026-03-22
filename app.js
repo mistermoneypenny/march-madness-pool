@@ -1558,17 +1558,18 @@ function renderLbBody() {
   const table = document.createElement('table');
   table.className = 'lb-table';
 
-  // Determine "on fire" player — whoever scored the most points across the last 4 decided games
-  // Collect decided games from most recent round backwards
+  // Determine "on fire" player — whoever scored the most points in the most recent round with results
+  // If the most recent round has fewer than 4 decided games, also pull from the previous round
   const recentGames = [];
-  for (let ri = ROUND_CONFIG.length - 1; ri >= 0 && recentGames.length < 4; ri--) {
+  for (let ri = ROUND_CONFIG.length - 1; ri >= 0; ri--) {
     const rid = ROUND_CONFIG[ri].id;
     const cfg = ROUND_CONFIG[ri];
     const games = getGamesForRound(rid).filter(g => state.results[g.id]);
-    // Add from this round (reverse order so newest games come first)
-    games.reverse().forEach(g => {
-      if (recentGames.length < 4) recentGames.push({ game: g, cfg });
-    });
+    if (games.length > 0) {
+      games.forEach(g => recentGames.push({ game: g, cfg }));
+      // If we have at least 4 games, stop; otherwise continue to previous round
+      if (recentGames.length >= 4) break;
+    }
   }
   // Score each player's streak across the last 4 games, then rank top 3
   const streakScores = [];
