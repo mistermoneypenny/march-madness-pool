@@ -186,6 +186,18 @@ const DEFAULT_PLAYERS = [
 const STORAGE_KEY = 'mmPool2026';
 const DEFAULT_PLAYERS_KEY = DEFAULT_PLAYERS.map(p => p.name).join(',');
 
+// ── PLAYER AVATARS ───────────────────────────────────────────
+// Map player names to their photo filenames (placed in project root)
+const PLAYER_AVATARS = {
+  'Josh': 'Josh.jpg',
+};
+
+function playerAvatarHtml(playerName, size = 28) {
+  const file = PLAYER_AVATARS[playerName];
+  if (!file) return '';
+  return `<img src="${file}" alt="${esc(playerName)}" class="player-avatar" style="width:${size}px;height:${size}px;">`;
+}
+
 // ── STATE ─────────────────────────────────────────────────────
 
 let state = {
@@ -1657,9 +1669,10 @@ function renderLbBody() {
     const fireEmojis = '&#128293;'.repeat(fireLevel);
     const fireTag = fireLevel ? ` <span class="lb-fire lb-fire-${fireLevel}" title="Hot streak — top scorer in the last 4 games">${fireEmojis}</span>` : '';
     const queenTag = upsetQueenId === row.player.id ? ' <span class="lb-queen-emoji" title="Most points from upsets">&#128120;</span><span class="lb-upset-queen"> Upset Kween!!!!!</span>' : '';
+    const avatar = playerAvatarHtml(row.player.name, 28);
     let tdHTML = `<td class="rank-num ${rankCls}">${rankIcon}</td>
       <td class="${nameClass}">
-        <button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}${queenTag}
+        ${avatar}<button class="${btnClass}" data-pid="${row.player.id}"${btnTitle}>${esc(row.player.name)}${lockTag}</button>${fireTag}${queenTag}
       </td>`;
 
     if (state.lbRound === 'all') {
