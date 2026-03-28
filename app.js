@@ -2466,10 +2466,9 @@ async function fetchLiveScores() {
     const scores = await resp.json();
     if (scores && Object.keys(scores).length) {
       state.liveScores = scores;
-      // Auto-set results from completed games (admin only)
-      if (isAdmin()) {
-        autoSetResultsFromScores();
-      }
+      // Auto-set results from completed games (server handles this too,
+      // but client-side as backup for immediate UI update)
+      autoSetResultsFromScores();
       renderCurrentView();
     }
   } catch (e) { /* ignore */ }

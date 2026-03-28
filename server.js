@@ -347,12 +347,213 @@ async function fetchESPNScores() {
 app.get('/api/scores', async (req, res) => {
   try {
     const scores = await fetchESPNScores();
+    // Auto-update results from completed games
+    await autoUpdateResults(scores);
     res.json(scores);
   } catch (e) {
     console.error('GET /api/scores error:', e.message);
     res.json({});
   }
 });
+
+// ── SERVER-SIDE AUTO-RESULTS ────────────────────────────────
+// Bracket teams per region (same as client app.js INITIAL_TEAMS)
+const BRACKET_TEAMS = {
+  east: [
+    { seed: 1, name: 'Duke' }, { seed: 16, name: 'Siena' },
+    { seed: 8, name: 'Ohio State' }, { seed: 9, name: 'TCU' },
+    { seed: 5, name: "St John's" }, { seed: 12, name: 'Northern Iowa' },
+    { seed: 4, name: 'Kansas' }, { seed: 13, name: 'CA Baptist' },
+    { seed: 6, name: 'Louisville' }, { seed: 11, name: 'South Florida' },
+    { seed: 3, name: 'Michigan St' }, { seed: 14, name: 'N Dakota St' },
+    { seed: 7, name: 'UCLA' }, { seed: 10, name: 'UCF' },
+    { seed: 2, name: 'UConn' }, { seed: 15, name: 'Furman' },
+  ],
+  west: [
+    { seed: 1, name: 'Arizona' }, { seed: 16, name: 'Long Island' },
+    { seed: 8, name: 'Villanova' }, { seed: 9, name: 'Utah State' },
+    { seed: 5, name: 'Wisconsin' }, { seed: 12, name: 'High Point' },
+    { seed: 4, name: 'Arkansas' }, { seed: 13, name: "Hawai'i" },
+    { seed: 6, name: 'BYU' }, { seed: 11, name: 'Texas' },
+    { seed: 3, name: 'Gonzaga' }, { seed: 14, name: 'Kennesaw St' },
+    { seed: 7, name: 'Miami' }, { seed: 10, name: 'Missouri' },
+    { seed: 2, name: 'Purdue' }, { seed: 15, name: 'Queens' },
+  ],
+  south: [
+    { seed: 1, name: 'Florida' }, { seed: 16, name: 'Prairie View' },
+    { seed: 8, name: 'Clemson' }, { seed: 9, name: 'Iowa' },
+    { seed: 5, name: 'Vanderbilt' }, { seed: 12, name: 'McNeese' },
+    { seed: 4, name: 'Nebraska' }, { seed: 13, name: 'Troy' },
+    { seed: 6, name: 'North Carolina' }, { seed: 11, name: 'VCU' },
+    { seed: 3, name: 'Illinois' }, { seed: 14, name: 'Penn' },
+    { seed: 7, name: "Saint Mary's" }, { seed: 10, name: 'Texas A&M' },
+    { seed: 2, name: 'Houston' }, { seed: 15, name: 'Idaho' },
+  ],
+  midwest: [
+    { seed: 1, name: 'Michigan' }, { seed: 16, name: 'Howard' },
+    { seed: 8, name: 'Georgia' }, { seed: 9, name: 'Saint Louis' },
+    { seed: 5, name: 'Texas Tech' }, { seed: 12, name: 'Akron' },
+    { seed: 4, name: 'Alabama' }, { seed: 13, name: 'Hofstra' },
+    { seed: 6, name: 'Tennessee' }, { seed: 11, name: 'Miami OH' },
+    { seed: 3, name: 'Virginia' }, { seed: 14, name: 'Wright St' },
+    { seed: 7, name: 'Kentucky' }, { seed: 10, name: 'Santa Clara' },
+    { seed: 2, name: 'Iowa State' }, { seed: 15, name: 'Tennessee St' },
+  ],
+};
+
+const REGIONS = ['east', 'west', 'south', 'midwest'];
+const F4_PAIRINGS = [['west', 'east'], ['south', 'midwest']];
+
+// Build game-to-teams mapping (mirrors client buildGames logic)
+function buildServerGames(results) {
+  const games = {};
+  // R64: 8 games per region
+  for (const region of REGIONS) {
+    const teams = BRACKET_TEAMS[region];
+    for (let i = 0; i < 8; i++) {
+      const id = `r64-${region}-${i}`;
+      games[id] = { id, round: 'r64', region, t1: teams[i*2], t2: teams[i*2+1] };
+    }
+  }
+  // R32: 4 games per region — teams come from R64 winners
+  for (const region of REGIONS) {
+    for (let i = 0; i < 4; i++) {
+      const p1 = `r64-${region}-${i*2}`;
+      const p2 = `r64-${region}-${i*2+1}`;
+      const id = `r32-${region}-${i}`;
+      const t1 = results[p1] ? findTeamByName(results[p1]) : null;
+      const t2 = results[p2] ? findTeamByName(results[p2]) : null;
+      games[id] = { id, round: 'r32', region, t1, t2 };
+    }
+  }
+  // S16: 2 games per region
+  for (const region of REGIONS) {
+    for (let i = 0; i < 2; i++) {
+      const p1 = `r32-${region}-${i*2}`;
+      const p2 = `r32-${region}-${i*2+1}`;
+      const id = `s16-${region}-${i}`;
+      const t1 = results[p1] ? findTeamByName(results[p1]) : null;
+      const t2 = results[p2] ? findTeamByName(results[p2]) : null;
+      games[id] = { id, round: 's16', region, t1, t2 };
+    }
+  }
+  // E8: 1 game per region
+  for (const region of REGIONS) {
+    const p1 = `s16-${region}-0`;
+    const p2 = `s16-${region}-1`;
+    const id = `e8-${region}-0`;
+    const t1 = results[p1] ? findTeamByName(results[p1]) : null;
+    const t2 = results[p2] ? findTeamByName(results[p2]) : null;
+    games[id] = { id, round: 'e8', region, t1, t2 };
+  }
+  // F4
+  F4_PAIRINGS.forEach(([r1, r2], i) => {
+    const p1 = `e8-${r1}-0`;
+    const p2 = `e8-${r2}-0`;
+    const id = `f4-${i}`;
+    const t1 = results[p1] ? findTeamByName(results[p1]) : null;
+    const t2 = results[p2] ? findTeamByName(results[p2]) : null;
+    games[id] = { id, round: 'f4', region: null, t1, t2 };
+  });
+  // Championship
+  const cid = 'champ-0';
+  const ct1 = results['f4-0'] ? findTeamByName(results['f4-0']) : null;
+  const ct2 = results['f4-1'] ? findTeamByName(results['f4-1']) : null;
+  games[cid] = { id: cid, round: 'champ', region: null, t1: ct1, t2: ct2 };
+
+  return games;
+}
+
+// Find team object by name across all regions
+function findTeamByName(name) {
+  for (const region of REGIONS) {
+    const t = BRACKET_TEAMS[region].find(t => t.name === name);
+    if (t) return t;
+  }
+  return { name, seed: 0 };
+}
+
+// Fuzzy match ESPN team name to our bracket team name
+function matchTeamName(espnName, bracketName) {
+  const e = espnName.toLowerCase().trim();
+  const b = bracketName.toLowerCase().trim();
+  if (e === b) return true;
+  if (e.includes(b) || b.includes(e)) return true;
+  // Handle common variations
+  const aliases = {
+    "st john's": ["st. john's", "saint john's", "st john's"],
+    "michigan st": ["michigan state", "mich st", "mich. st"],
+    "iowa state": ["iowa st", "iowa st."],
+    "ohio state": ["ohio st", "ohio st."],
+    "texas tech": ["texas tech"],
+    "texas a&m": ["texas am", "texas a&m"],
+    "n dakota st": ["north dakota state", "n dakota st", "ndsu", "north dakota st"],
+    "south florida": ["usf", "south florida", "s florida"],
+    "utah state": ["utah st", "utah st."],
+    "saint louis": ["st louis", "st. louis", "slu"],
+    "northern iowa": ["n iowa", "uni", "northern iowa"],
+    "ca baptist": ["cal baptist", "california baptist", "cbu"],
+    "miami oh": ["miami (oh)", "miami ohio"],
+    "miami": ["miami (fl)", "miami fl"],
+    "santa clara": ["santa clara"],
+    "wright st": ["wright state", "wright st."],
+    "kennesaw st": ["kennesaw state", "kennesaw st."],
+    "tennessee st": ["tennessee state", "tennessee st."],
+    "saint mary's": ["st mary's", "st. mary's", "saint mary's"],
+    "north carolina": ["unc", "n carolina"],
+    "high point": ["high point"],
+    "prairie view": ["prairie view a&m", "prairie view"],
+  };
+  for (const [key, vals] of Object.entries(aliases)) {
+    if (b === key && vals.some(v => e.includes(v) || v.includes(e))) return true;
+    if (vals.some(v => b === v) && (e === key || e.includes(key))) return true;
+  }
+  return false;
+}
+
+async function autoUpdateResults(scores) {
+  if (!scores || !Object.keys(scores).length) return;
+  if (!memoryState) return;
+
+  const results = memoryState.results || {};
+  const games = buildServerGames(results);
+  let newResults = 0;
+
+  for (const game of Object.values(games)) {
+    if (results[game.id]) continue; // already decided
+    if (!game.t1 || !game.t2) continue; // teams not yet known
+
+    // Find matching ESPN score
+    let matched = null;
+    for (const sc of Object.values(scores)) {
+      if (sc.status !== 'post') continue;
+      const e1 = sc.t1.name, e2 = sc.t2.name;
+      if (matchTeamName(e1, game.t1.name) && matchTeamName(e2, game.t2.name)) {
+        matched = { winner: sc.t1.score > sc.t2.score ? game.t1.name : game.t2.name };
+        break;
+      }
+      if (matchTeamName(e1, game.t2.name) && matchTeamName(e2, game.t1.name)) {
+        matched = { winner: sc.t1.score > sc.t2.score ? game.t2.name : game.t1.name };
+        break;
+      }
+    }
+    if (matched) {
+      results[game.id] = matched.winner;
+      newResults++;
+      console.log(`Auto-result: ${game.id} → ${matched.winner}`);
+    }
+  }
+
+  if (newResults > 0) {
+    memoryState.results = results;
+    try {
+      await writeState(memoryState);
+      console.log(`Auto-updated ${newResults} result(s) from ESPN`);
+    } catch (e) {
+      console.error('Failed to save auto-results:', e.message);
+    }
+  }
+}
 
 // ── GRACEFUL SHUTDOWN ────────────────────────────────────────
 async function shutdown(signal) {
