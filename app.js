@@ -77,14 +77,15 @@ const BONUS_CONFIG = {
 const REGIONS = ['East', 'West', 'South', 'Midwest'];
 
 // Quadrant layout: left col (top→bottom) | right col (top→bottom)
-const LEFT_REGIONS  = ['West', 'East'];
-const RIGHT_REGIONS = ['South', 'Midwest'];
+// West + Midwest pair in F4, East + South pair in F4
+const LEFT_REGIONS  = ['West', 'Midwest'];
+const RIGHT_REGIONS = ['East', 'South'];
 
-// Left side (West + East) → F4 game 0
-// Right side (South + Midwest) → F4 game 1
+// Left side (West + Midwest) → F4 game 0  (Arizona vs Michigan)
+// Right side (East + South) → F4 game 1  (Duke/UConn vs Illinois)
 const F4_PAIRINGS = [
-  ['West', 'East'],
-  ['South', 'Midwest'],
+  ['West', 'Midwest'],
+  ['East', 'South'],
 ];
 
 // ── 2025-26 NCAA TOURNAMENT BRACKET ───────────────────────────
@@ -978,7 +979,7 @@ function buildBracketCenter() {
     return col;
   }
 
-  // ── Left F4 column (game 0: West vs East) ──
+  // ── Left F4 column (game 0: West vs Midwest) ──
   center.appendChild(buildF4Col(0));
 
   // ── Championship column ──
@@ -1024,7 +1025,7 @@ function buildBracketCenter() {
   champCol.appendChild(champContent);
   center.appendChild(champCol);
 
-  // ── Right F4 column (game 1: South vs Midwest) ──
+  // ── Right F4 column (game 1: East vs South) ──
   center.appendChild(buildF4Col(1));
 
   return center;
