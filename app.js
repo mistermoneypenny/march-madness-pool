@@ -318,7 +318,7 @@ function calcPickPoints(game, pickedName, cfg) {
   const dog = fav === t1 ? t2 : t1;
   if (dog.seed === fav.seed) return cfg.pts;     // equal seeds — no upset bonus
   if (pickedName === dog.name) {
-    return Math.round(((dog.seed - fav.seed) + cfg.pts) * cfg.multiplier * 10) / 10;
+    return Math.round((cfg.pts + (dog.seed - fav.seed) * cfg.multiplier) * 10) / 10;
   }
   return cfg.pts;
 }
