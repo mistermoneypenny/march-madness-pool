@@ -65,7 +65,7 @@ const BONUS_CONFIG = {
     { id: 's16_diff', label: 'Highest Point Differential', points: 8, type: 'select', options: Array.from({length: 61}, (_, i) => String(i)) },
   ],
   e8: [
-    { id: 'e8_scorer', label: 'High Scorer (Player Name)', points: 10, type: 'text' },
+    { id: 'e8_scorer', label: 'High Scorer (Player Name — enter up to 2 for ties)', points: 10, type: 'multi_any', count: 2 },
     { id: 'e8_teams', label: 'Name the Four Elite Eight Winners', points: 25, type: 'multi', count: 4 },
   ],
   f4: [
@@ -399,6 +399,13 @@ function getBonusScore(playerId, roundId) {
       if (normP.length === normC.length && normP.every((v, i) => v === normC[i])) {
         score += b.points;
       }
+    } else if (b.type === 'multi_any') {
+      // Admin sets multiple correct answers; player picks one text answer — wins if it matches ANY
+      const pAns = (typeof playerAns === 'string' ? playerAns : (Array.isArray(playerAns) ? playerAns[0] : '')).trim().toLowerCase();
+      const cArr = Array.isArray(correctAns) ? correctAns : [correctAns];
+      if (pAns && cArr.some(c => c && c.trim().toLowerCase() === pAns)) {
+        score += b.points;
+      }
     } else {
       if (playerAns.trim().toLowerCase() === correctAns.trim().toLowerCase()) {
         score += b.points;
@@ -423,6 +430,10 @@ function getPlayerBonusDetails(playerId, roundId) {
           const nc = correctAns.map(s => s.trim().toLowerCase()).filter(Boolean).sort();
           isCorrect = np.length === nc.length && np.every((v, i) => v === nc[i]);
         }
+      } else if (b.type === 'multi_any') {
+        const pAns = (typeof playerAns === 'string' ? playerAns : (Array.isArray(playerAns) ? playerAns[0] : '')).trim().toLowerCase();
+        const cArr = Array.isArray(correctAns) ? correctAns : [correctAns];
+        isCorrect = pAns && cArr.some(c => c && c.trim().toLowerCase() === pAns);
       } else {
         isCorrect = playerAns.trim().toLowerCase() === correctAns.trim().toLowerCase();
       }
@@ -1323,13 +1334,15 @@ function renderPicksBody() {
         row.appendChild(sel);
         bonusCard.appendChild(row);
       } else {
+        // text or multi_any — single text input for the player
         const row = document.createElement('div');
         row.className = 'bonus-input-row';
         const inp = document.createElement('input');
         inp.type = 'text';
         inp.className = 'bonus-input';
         inp.placeholder = 'Enter your answer...';
-        inp.value = playerAns || '';
+        const pVal = Array.isArray(playerAns) ? (playerAns[0] || '') : (playerAns || '');
+        inp.value = pVal;
         inp.disabled = !isOpen;
         inp.dataset.bonusId = b.id;
         inp.addEventListener('change', () => {
@@ -1812,6 +1825,27 @@ function renderBonusAdmin() {
         inp.placeholder = 'From entered results...';
         inp.value = actualWinners[i] || '';
         inp.disabled = true;  // read-only — driven by actual results
+        inp.dataset.bonusId = b.id;
+        inp.dataset.bonusIdx = i;
+        row.appendChild(inp);
+        card.appendChild(row);
+      }
+    } else if (b.type === 'multi_any') {
+      // Admin enters up to N correct answers (any one match wins for player)
+      const count = b.count || 2;
+      const existing = Array.isArray(correctAns) ? correctAns : [];
+      for (let i = 0; i < count; i++) {
+        const row = document.createElement('div');
+        row.className = 'bonus-input-row';
+        const label = document.createElement('span');
+        label.className = 'bonus-input-label';
+        label.textContent = i === 0 ? 'Answer 1:' : `Answer ${i + 1} (tie):`;
+        row.appendChild(label);
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'bonus-input admin-bonus-input';
+        inp.placeholder = i === 0 ? 'Enter correct answer...' : 'Leave blank if no tie';
+        inp.value = existing[i] || '';
         inp.dataset.bonusId = b.id;
         inp.dataset.bonusIdx = i;
         row.appendChild(inp);
