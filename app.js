@@ -411,9 +411,10 @@ function getBonusScore(playerId, roundId) {
       }
     } else if (b.type === 'multi_any') {
       // Admin sets multiple correct answers; player picks one text answer — wins if it matches ANY
+      // Partial name matching: "Boozer" matches "Cameron Boozer"
       const pAns = (typeof playerAns === 'string' ? playerAns : (Array.isArray(playerAns) ? playerAns[0] : '')).trim().toLowerCase();
       const cArr = Array.isArray(correctAns) ? correctAns : [correctAns];
-      if (pAns && cArr.some(c => c && c.trim().toLowerCase() === pAns)) {
+      if (pAns && cArr.some(c => { const cn = c && c.trim().toLowerCase(); return cn && (cn === pAns || cn.includes(pAns) || pAns.includes(cn)); })) {
         score += b.points;
       }
     } else {
@@ -443,7 +444,7 @@ function getPlayerBonusDetails(playerId, roundId) {
       } else if (b.type === 'multi_any') {
         const pAns = (typeof playerAns === 'string' ? playerAns : (Array.isArray(playerAns) ? playerAns[0] : '')).trim().toLowerCase();
         const cArr = Array.isArray(correctAns) ? correctAns : [correctAns];
-        isCorrect = pAns && cArr.some(c => c && c.trim().toLowerCase() === pAns);
+        isCorrect = pAns && cArr.some(c => { const cn = c && c.trim().toLowerCase(); return cn && (cn === pAns || cn.includes(pAns) || pAns.includes(cn)); });
       } else {
         isCorrect = playerAns.trim().toLowerCase() === correctAns.trim().toLowerCase();
       }
