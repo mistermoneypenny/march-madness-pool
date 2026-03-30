@@ -385,11 +385,21 @@ function getPlayerTotalScore(playerId) {
 
 // ── BONUS SCORING ─────────────────────────────────────────────
 
+function getEffectiveBonusAnswer(playerId, bonusCfg) {
+  // For e8_teams, always derive from player's actual E8 picks (not stored bonusPicks)
+  if (bonusCfg.id === 'e8_teams') {
+    const e8Picks = (state.picks[playerId] || {})['e8'] || {};
+    const e8Games = getGamesForRound('e8');
+    return e8Games.map(g => e8Picks[g.id] || '');
+  }
+  return (state.bonusPicks[playerId] || {})[bonusCfg.id];
+}
+
 function getBonusScore(playerId, roundId) {
   const bonuses = BONUS_CONFIG[roundId] || [];
   let score = 0;
   bonuses.forEach(b => {
-    const playerAns = (state.bonusPicks[playerId] || {})[b.id];
+    const playerAns = getEffectiveBonusAnswer(playerId, b);
     const correctAns = state.bonusAnswers[b.id];
     if (!playerAns || !correctAns) return;
     if (b.type === 'multi') {
@@ -418,7 +428,7 @@ function getBonusScore(playerId, roundId) {
 function getPlayerBonusDetails(playerId, roundId) {
   const bonuses = BONUS_CONFIG[roundId] || [];
   return bonuses.map(b => {
-    const playerAns = (state.bonusPicks[playerId] || {})[b.id];
+    const playerAns = getEffectiveBonusAnswer(playerId, b);
     const correctAns = state.bonusAnswers[b.id];
     let status = 'pending';
     let earned = 0;
