@@ -245,10 +245,11 @@ app.post('/api/state', async (req, res) => {
         existing.picks = incoming.picks;
       }
 
-      // ── BONUS PICKS: deep-merge per sender ──
+      // ── BONUS PICKS: deep-merge per sender (preserve existing fields) ──
       if (incoming.bonusPicks && sender) {
         if (!existing.bonusPicks) existing.bonusPicks = {};
-        existing.bonusPicks[sender] = incoming.bonusPicks[sender] || {};
+        if (!existing.bonusPicks[sender]) existing.bonusPicks[sender] = {};
+        Object.assign(existing.bonusPicks[sender], incoming.bonusPicks[sender] || {});
       } else if (incoming.bonusPicks && !sender) {
         existing.bonusPicks = incoming.bonusPicks;
       }
