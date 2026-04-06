@@ -72,6 +72,14 @@ const BONUS_CONFIG = {
     { id: 'f4_team3', label: 'Team with Most 3-Pointers', points: 6, type: 'select', options: '__ALL_TEAMS__' },
     { id: 'f4_num3', label: 'Number of 3-Pointers Made', points: 6, type: 'select', options: Array.from({length: 41}, (_, i) => String(i)) },
   ],
+  champ: [
+    { id: 'champ_mvp', label: 'MVP', points: 3, type: 'multi_any', count: 1 },
+    { id: 'champ_first_scorer', label: 'First Individual Scorer', points: 3, type: 'multi_any', count: 1 },
+    { id: 'champ_first_to_15', label: 'First Team to 15 Points', points: 3, type: 'select', options: ['Michigan', 'UConn'] },
+    { id: 'champ_assists', label: 'High Assist Man', points: 3, type: 'multi_any', count: 1 },
+    { id: 'champ_halftime', label: 'Half Time Score (e.g. 35-32)', points: 5, type: 'text' },
+    { id: 'champ_final', label: 'Final Score (e.g. 72-68)', points: 6, type: 'text' },
+  ],
 };
 
 const REGIONS = ['East', 'West', 'South', 'Midwest'];
