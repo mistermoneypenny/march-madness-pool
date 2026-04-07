@@ -479,16 +479,6 @@ function matchTeamName(espnName, bracketName) {
   const e = espnName.toLowerCase().trim();
   const b = bracketName.toLowerCase().trim();
   if (e === b) return true;
-  // Word-boundary substring check: "michigan" must not match "michigan st"
-  // Only match if the substring appears as a complete word (not a prefix of a longer word)
-  function wordMatch(haystack, needle) {
-    const idx = haystack.indexOf(needle);
-    if (idx === -1) return false;
-    const after = idx + needle.length;
-    // If needle ends at end of string, or next char is non-alphanumeric → word boundary
-    return after >= haystack.length || !/[a-z0-9]/.test(haystack[after]);
-  }
-  if (e !== b && (wordMatch(e, b) || wordMatch(b, e))) return true;
   // Handle common variations
   const aliases = {
     "st john's": ["st. john's", "saint john's", "st john's"],
@@ -513,6 +503,7 @@ function matchTeamName(espnName, bracketName) {
     "north carolina": ["unc", "n carolina"],
     "high point": ["high point"],
     "prairie view": ["prairie view a&m", "prairie view"],
+    "uconn": ["connecticut", "conn"],
   };
   for (const [key, vals] of Object.entries(aliases)) {
     if (b === key && vals.some(v => e.includes(v) || v.includes(e))) return true;
