@@ -900,6 +900,29 @@ function buildRoundCol(region, roundId) {
 }
 
 // Find live score for a game by matching team names against ESPN data
+function fuzzyTeamMatch(espnName, bracketName) {
+  const e = espnName.toLowerCase().trim();
+  const b = bracketName.toLowerCase().trim();
+  if (e === b) return true;
+  const aliases = {
+    "st john's": ["st. john's", "saint john's"],
+    "michigan st": ["michigan state", "mich st"],
+    "iowa state": ["iowa st"],
+    "utah state": ["utah st"],
+    "michigan": ["michigan"],  // exact only — must NOT match "michigan st"
+    "uconn": ["connecticut", "conn"],
+    "saint louis": ["st louis", "st. louis", "slu"],
+    "texas a&m": ["texas am"],
+    "north carolina": ["unc", "n carolina"],
+    "saint mary's": ["st mary's", "st. mary's"],
+  };
+  for (const [key, vals] of Object.entries(aliases)) {
+    if (b === key && vals.some(v => e === v)) return true;
+    if (vals.some(v => b === v) && e === key) return true;
+  }
+  return false;
+}
+
 function findGameScore(t1, t2) {
   if (!t1 || !t2 || !state.liveScores) return null;
   const name1 = t1.name.toLowerCase();
@@ -908,14 +931,11 @@ function findGameScore(t1, t2) {
   for (const [key, sc] of Object.entries(state.liveScores)) {
     const sn1 = sc.t1.name.toLowerCase();
     const sn2 = sc.t2.name.toLowerCase();
-    // Match if both team names appear (ESPN may abbreviate differently)
-    if ((sn1.includes(name1) || name1.includes(sn1) || sn1 === name1) &&
-        (sn2.includes(name2) || name2.includes(sn2) || sn2 === name2)) {
+    if (fuzzyTeamMatch(sn1, name1) && fuzzyTeamMatch(sn2, name2)) {
       return sc;
     }
     // Try reversed order
-    if ((sn1.includes(name2) || name2.includes(sn1) || sn1 === name2) &&
-        (sn2.includes(name1) || name1.includes(sn2) || sn2 === name1)) {
+    if (fuzzyTeamMatch(sn1, name2) && fuzzyTeamMatch(sn2, name1)) {
       return { t1: sc.t2, t2: sc.t1, status: sc.status, statusDetail: sc.statusDetail, clock: sc.clock, period: sc.period };
     }
   }
