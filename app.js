@@ -1872,7 +1872,7 @@ function renderBonusAdmin() {
     } else if (b.type === 'multi_any') {
       // Admin enters up to N correct answers (any one match wins for player)
       const count = b.count || 2;
-      const existing = Array.isArray(correctAns) ? correctAns : [];
+      const existing = Array.isArray(correctAns) ? correctAns : (correctAns ? [correctAns] : []);
       for (let i = 0; i < count; i++) {
         const row = document.createElement('div');
         row.className = 'bonus-input-row';
