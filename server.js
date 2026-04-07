@@ -268,6 +268,7 @@ app.post('/api/state', async (req, res) => {
 app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
+    version: 3,
     uptime: Math.floor(process.uptime()),
     memoryCache: !!memoryState,
     lastJsonBinSync: lastJsonBinRead ? new Date(lastJsonBinRead).toISOString() : null,
@@ -529,6 +530,20 @@ async function autoUpdateResults(scores) {
     for (const sc of Object.values(scores)) {
       if (sc.status !== 'post') continue;
       const e1 = sc.t1.name, e2 = sc.t2.name;
+
+      // For championship game, require EXACT name match (case-insensitive) to
+      // prevent fuzzy false positives (e.g. "Michigan St" matching "Michigan")
+      if (game.id === 'champ-0') {
+        const g1 = game.t1.name.toLowerCase(), g2 = game.t2.name.toLowerCase();
+        const s1 = e1.toLowerCase(), s2 = e2.toLowerCase();
+        if ((s1 === g1 && s2 === g2) || (s1 === g2 && s2 === g1)) {
+          matched = { winner: sc.t1.score > sc.t2.score ? game.t1.name : game.t2.name };
+          if (s1 === g2) matched = { winner: sc.t1.score > sc.t2.score ? game.t2.name : game.t1.name };
+          break;
+        }
+        continue; // skip fuzzy matching for championship
+      }
+
       if (matchTeamName(e1, game.t1.name) && matchTeamName(e2, game.t2.name)) {
         matched = { winner: sc.t1.score > sc.t2.score ? game.t1.name : game.t2.name };
         break;
