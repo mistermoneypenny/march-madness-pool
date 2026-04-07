@@ -201,6 +201,23 @@ app.post('/api/state', async (req, res) => {
       // ── ADMIN-ONLY FIELDS ──
       // Only admin (or no-sender bulk saves) can modify these
       if (admin) {
+        // For results: merge instead of replace to prevent stale client state
+        // from re-adding results that were cleared server-side.
+        // Server results are the source of truth; client can update existing
+        // results but cannot add new ones via bulk save.
+        if (incoming.results && sender) {
+          const merged = Object.assign({}, existing.results || {});
+          for (const gid of Object.keys(incoming.results)) {
+            if (merged[gid]) {
+              // Allow updating existing results (admin corrections)
+              merged[gid] = incoming.results[gid];
+            }
+            // New results from client bulk saves are ignored —
+            // they should come from autoUpdateResults or /api/set-result
+          }
+          incoming.results = merged;
+        }
+
         const adminFields = ['currentRound', 'roundStatus', 'results', 'rulesText',
                              'defaultPlayersKey', 'bonusAnswers'];
         adminFields.forEach(field => {
@@ -260,6 +277,33 @@ app.post('/api/state', async (req, res) => {
     res.json(result);
   } catch (e) {
     console.error('POST /api/state error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── SET RESULT (admin only) ──────────────────────────────────
+// Dedicated endpoint for admin to explicitly set/clear a game result.
+// This bypasses the merge-only restriction on bulk saves.
+app.post('/api/set-result', async (req, res) => {
+  try {
+    const result = await withWriteLock(async () => {
+      let existing = await readState();
+      const { _sender, gameId, winner } = req.body;
+      if (!isAdminSender(_sender, existing)) {
+        return { error: 'Not authorized' };
+      }
+      if (!existing.results) existing.results = {};
+      if (winner) {
+        existing.results[gameId] = winner;
+      } else {
+        delete existing.results[gameId];
+      }
+      await writeState(existing);
+      return { ok: true };
+    });
+    res.json(result);
+  } catch (e) {
+    console.error('POST /api/set-result error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });

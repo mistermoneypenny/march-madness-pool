@@ -2286,13 +2286,21 @@ function renderResultsGrid() {
         btn.className = 'result-team-btn';
         if (winner && winner.name === team.name) btn.classList.add('chosen');
         btn.textContent = `(${team.seed}) ${team.name}`;
-        btn.addEventListener('click', () => {
-          if (winner && winner.name === team.name) {
-            // Toggle off
-            delete state.results[game.id];
+        btn.addEventListener('click', async () => {
+          const newWinner = (winner && winner.name === team.name) ? null : team.name;
+          if (newWinner) {
+            state.results[game.id] = newWinner;
           } else {
-            state.results[game.id] = team.name;
+            delete state.results[game.id];
           }
+          // Set result via dedicated endpoint (bypasses bulk save merge restriction)
+          try {
+            await fetch('/api/set-result', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ _sender: state.currentPlayer, gameId: game.id, winner: newWinner }),
+            });
+          } catch (e) { console.error('set-result failed:', e); }
           // Auto-fix any player picks that are now invalid given the new result
           const fixed = fixInvalidPicks();
           saveState();
